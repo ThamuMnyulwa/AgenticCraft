@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLflow: Autologging &amp; Zero-Config</title>
+<style>
+  :root {
+    --blue: #4285F4; --red: #EA4335; --yellow: #FBBC04; --green: #34A853;
+    --ink: #202124; --grey: #5F6368; --line: #DADCE0; --bg: #FFFFFF; --code-bg: #F1F3F4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+  body { font-family: 'Google Sans', 'Segoe UI', Roboto, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+  .slide {
+    min-height: 100vh; scroll-snap-align: start; display: flex; flex-direction: column;
+    justify-content: center; padding: 6vh 8vw; position: relative;
+    border-bottom: 1px solid var(--line); overflow: hidden;
+  }
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s cubic-bezier(.22,.61,.36,1), transform .7s cubic-bezier(.22,.61,.36,1); }
+  .slide.in-view .reveal { opacity: 1; transform: none; }
+  .slide.in-view .reveal:nth-child(2) { transition-delay: .08s; }
+  .slide.in-view .reveal:nth-child(3) { transition-delay: .16s; }
+  .slide.in-view .reveal:nth-child(4) { transition-delay: .24s; }
+  .slide.in-view .reveal:nth-child(5) { transition-delay: .32s; }
+  .slide.in-view .reveal:nth-child(6) { transition-delay: .40s; }
+  .eyebrow { font-size: 0.8rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--grey); font-weight: 600; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.6rem; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  h1 { font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(1.9rem, 4vw, 3rem); font-weight: 700; line-height: 1.1; letter-spacing: -0.015em; margin-bottom: 1.5rem; }
+  p.lead { font-size: clamp(1.1rem, 1.6vw, 1.35rem); color: var(--grey); max-width: 44ch; line-height: 1.55; }
+  .brand { display: flex; gap: 4px; margin-bottom: 2.5rem; }
+  .brand span { width: 22px; height: 22px; border-radius: 50%; animation: bob 3s ease-in-out infinite; }
+  .brand span:nth-child(2) { animation-delay: .2s; }
+  .brand span:nth-child(3) { animation-delay: .4s; }
+  .brand span:nth-child(4) { animation-delay: .6s; }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  ul.points { list-style: none; margin-top: 1rem; display: grid; gap: 1.1rem; max-width: 62ch; }
+  ul.points li { display: flex; gap: 1rem; align-items: flex-start; font-size: 1.12rem; line-height: 1.5; }
+  ul.points li b { font-weight: 600; }
+  .bar { width: 5px; align-self: stretch; border-radius: 3px; flex-shrink: 0; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 2rem; max-width: 900px; }
+  .card { border: 1px solid var(--line); border-radius: 14px; padding: 1.6rem; transition: transform .25s ease, box-shadow .25s ease; }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(60,64,67,.12); }
+  .card h3 { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .card p { color: var(--grey); font-size: 0.98rem; line-height: 1.5; }
+  .card .tag { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  pre { background: var(--code-bg); border-radius: 12px; padding: 1.4rem 1.7rem; font-family: 'Roboto Mono', 'Courier New', monospace; font-size: clamp(0.8rem, 1.05vw, 1rem); line-height: 1.7; overflow-x: auto; margin-top: 1.3rem; max-width: 760px; border-left: 5px solid var(--blue); }
+  pre .kw { color: var(--red); }
+  pre .fn { color: var(--blue); }
+  pre .str { color: var(--green); }
+  pre .cm { color: var(--grey); font-style: italic; }
+  .num { position: absolute; top: 5vh; right: 8vw; font-size: 0.85rem; color: var(--grey); font-weight: 600; }
+  .callout { margin-top: 1.6rem; padding: 1.2rem 1.5rem; background: var(--code-bg); border-radius: 12px; max-width: 680px; display: flex; gap: 1rem; align-items: center; }
+  .callout .mark { font-size: 1.5rem; }
+  .callout p { font-size: 1rem; color: var(--ink); line-height: 1.5; }
+  .demo-link { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1.2rem; font-size: 0.98rem; font-weight: 600; text-decoration: none; color: var(--blue); padding: 0.6rem 1.1rem; border: 1.5px solid var(--blue); border-radius: 999px; transition: background .2s ease, color .2s ease; }
+  .demo-link:hover { background: var(--blue); color: #fff; }
+  .demo-link.g { color: var(--green); border-color: var(--green); }
+  .demo-link.g:hover { background: var(--green); color: #fff; }
+  code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 0.9em; }
+  .progress { position: fixed; top: 0; left: 0; height: 4px; width: 0; z-index: 50; background: linear-gradient(90deg, var(--blue), var(--red), var(--yellow), var(--green)); }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .brand span { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<section class="slide">
+  <span class="num">01</span>
+  <div class="brand reveal">
+    <span style="background:var(--blue)"></span><span style="background:var(--red)"></span><span style="background:var(--yellow)"></span><span style="background:var(--green)"></span>
+  </div>
+  <img class="reveal" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAvAAAAIYCAYAAAALsdiVAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAC8KADAAQAAAABAAACGAAAAACFUGxdAABAAElEQVR4Ae3dP6wsR5ko8HOu/2BbvGxDbBLzjDbwbuLVrlYbPRMBEmROHFkCJESEnK5lp4gIIcFKjpw4syUu0XojtHpoSfY5QMbcBNiQzMi+xvI9r+rc7nP7zJ050zPT9VV19+9K9vTMdHdV/apnztfVX/WcnflHgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIEDhG4PyY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ZuQ+B+j53wf5fzlQz4+C9azgHwECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIHCywP8HY41c5J+oP8QAAAAASUVORK5CYII=" alt="MLflow logo" style="width:clamp(200px,30vw,360px); height:auto; margin-bottom:1.8rem;">
+  <h1 class="reveal" style="color:var(--grey); font-weight:400; font-size:clamp(1.5rem,3vw,2.4rem);">Autologging &amp; zero-config tracking</h1>
+  <p class="lead reveal" style="margin-top:2rem;">From "what is MLflow" to logging an entire training run with a single line of code.</p>
+  <a class="demo-link reveal" href="https://thamu.dev/" target="_blank" rel="noopener" style="position:absolute; bottom:6vh; left:8vw;">thamu.dev &nbsp;&rarr;</a>
+</section>
+
+<section class="slide">
+  <span class="num">02</span>
+  <div class="eyebrow reveal"><span class="dot" style="background:var(--blue)"></span>Introduction</div>
+  <h2 class="reveal">What is MLflow?</h2>
+  <p class="lead reveal">An open-source platform for managing the machine learning lifecycle: experiments, models, and deployment, tracked in one place.</p>
+  <div class="grid reveal">
+    <div class="card"><span class="tag" style="color:var(--blue)">Tracking</span><h3>Log every run</h3><p>Record parameters, metrics, and artifacts so results are reproducible and comparable.</p></div>
+    <div class="card"><span class="tag" style="color:var(--red)">Models</span><h3>Package &amp; version</h3><p>Save trained models in a standard format ready for reuse across tools.</p></div>
+    <div class="card"><span class="tag" style="color:var(--yellow)">Registry</span><h3>Manage lifecycle</h3><p>Promote models through staging and production with full lineage.</p></div>
+    <div class="card"><span class="tag" style="color:var(--green)">Serve</span><h3>Deploy anywhere</h3><p>Ship models to a REST endpoint, batch job, or cloud platform.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <span class="num">03</span>
+  <div class="eyebrow reveal"><span class="dot" style="background:var(--red)"></span>Why it matters</div>
+  <h2 class="reveal">The problem it solves</h2>
+  <ul class="points reveal">
+    <li><span class="bar" style="background:var(--blue)"></span><span><b>Lost experiments.</b> Which hyperparameters gave that good score last Tuesday? MLflow remembers so you don't have to.</span></li>
+    <li><span class="bar" style="background:var(--red)"></span><span><b>Manual bookkeeping.</b> No more copy-pasting metrics into spreadsheets after every run.</span></li>
+    <li><span class="bar" style="background:var(--yellow)"></span><span><b>Reproducibility gaps.</b> Every run captures its code version, parameters, and environment.</span></li>
+    <li><span class="bar" style="background:var(--green)"></span><span><b>Framework sprawl.</b> One consistent interface across scikit-learn, PyTorch, XGBoost, and more.</span></li>
+  </ul>
+</section>
+
+<section class="slide">
+  <span class="num">04</span>
+  <div class="eyebrow reveal"><span class="dot" style="background:var(--green)"></span>Autologging</div>
+  <h2 class="reveal">Activating autologging</h2>
+  <p class="lead reveal">Autologging captures parameters, metrics, and models automatically, without adding logging calls to your training code.</p>
+  <pre class="reveal"><span class="kw">import</span> mlflow
+
+<span class="cm"># One call, before you train</span>
+mlflow.<span class="fn">autolog</span>()
+
+<span class="cm"># Your normal training code, unchanged</span>
+model.<span class="fn">fit</span>(X_train, y_train)</pre>
+  <div class="callout reveal"><span class="mark">&#10022;</span><p><b>mlflow.autolog()</b> enables logging for every supported library you've imported. Framework-specific variants exist too, like <b>mlflow.sklearn.autolog()</b>.</p></div>
+</section>
+
+<section class="slide">
+  <span class="num">05</span>
+  <div class="eyebrow reveal"><span class="dot" style="background:var(--yellow)"></span>Under the hood</div>
+  <h2 class="reveal">What autolog captures</h2>
+  <div class="grid reveal">
+    <div class="card" style="border-left:5px solid var(--blue)"><h3>Parameters</h3><p>Model hyperparameters and fit arguments, pulled directly from the estimator.</p></div>
+    <div class="card" style="border-left:5px solid var(--red)"><h3>Metrics</h3><p>Training scores, loss curves, and evaluation results per epoch or step.</p></div>
+    <div class="card" style="border-left:5px solid var(--yellow)"><h3>Artifacts</h3><p>The serialized model, plus plots and summaries where the flavour supports them.</p></div>
+    <div class="card" style="border-left:5px solid var(--green)"><h3>Metadata</h3><p>Run timing, source code version, and the model signature for later serving.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <span class="num">06</span>
+  <div class="eyebrow reveal"><span class="dot" style="background:var(--blue)"></span>The big idea</div>
+  <h2 class="reveal">Zero-config coding</h2>
+  <p class="lead reveal">Instrumentation without ceremony. You write ML code the way you always have; MLflow observes and records it for you.</p>
+  <ul class="points reveal" style="margin-top:1.6rem;">
+    <li><span class="bar" style="background:var(--blue)"></span><span><b>No manual log calls.</b> Skip <code>log_param</code> and <code>log_metric</code> for every value. Autolog infers them.</span></li>
+    <li><span class="bar" style="background:var(--green)"></span><span><b>No boilerplate runs.</b> A run starts and ends around your <code>fit</code> automatically.</span></li>
+    <li><span class="bar" style="background:var(--yellow)"></span><span><b>Add detail only when you want it.</b> Drop into manual logging for custom metrics, and autolog fills in the rest.</span></li>
+  </ul>
+</section>
+
+<section class="slide">
+  <span class="num">07</span>
+  <div class="eyebrow reveal"><span class="dot" style="background:var(--red)"></span>The difference</div>
+  <h2 class="reveal">Manual vs zero-config</h2>
+  <div class="grid reveal" style="grid-template-columns:1fr 1fr; align-items:start;">
+    <div><span class="tag" style="color:var(--red)">Before</span>
+      <pre style="border-left-color:var(--red); margin-top:0.8rem;"><span class="kw">with</span> mlflow.<span class="fn">start_run</span>():
+    mlflow.<span class="fn">log_param</span>(<span class="str">"n_est"</span>, 100)
+    mlflow.<span class="fn">log_param</span>(<span class="str">"depth"</span>, 6)
+    model.<span class="fn">fit</span>(X, y)
+    acc = model.<span class="fn">score</span>(X, y)
+    mlflow.<span class="fn">log_metric</span>(<span class="str">"acc"</span>, acc)
+    mlflow.sklearn.<span class="fn">log_model</span>(
+        model, <span class="str">"model"</span>)</pre>
+    </div>
+    <div><span class="tag" style="color:var(--green)">After</span>
+      <pre style="border-left-color:var(--green); margin-top:0.8rem;">mlflow.<span class="fn">autolog</span>()
+
+model.<span class="fn">fit</span>(X, y)
+
+<span class="cm"># params, metrics, and</span>
+<span class="cm"># the model: all logged</span></pre>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <span class="num">08</span>
+  <div class="eyebrow reveal"><span class="dot" style="background:var(--blue)"></span>Example 1 &nbsp;&middot;&nbsp; scikit-learn</div>
+  <h2 class="reveal">True zero-config</h2>
+  <p class="lead reveal">scikit-learn works with generic autolog out of the box. One call, then train as normal.</p>
+  <pre class="reveal"><span class="kw">import</span> mlflow
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> RandomForestClassifier
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_iris
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+
+mlflow.<span class="fn">autolog</span>()   <span class="cm"># <- the only MLflow line you add</span>
+
+X, y = <span class="fn">load_iris</span>(return_X_y=<span class="kw">True</span>)
+X_tr, X_te, y_tr, y_te = <span class="fn">train_test_split</span>(X, y, test_size=<span class="str">0.2</span>)
+
+clf = <span class="fn">RandomForestClassifier</span>(n_estimators=<span class="str">100</span>, max_depth=<span class="str">6</span>)
+clf.<span class="fn">fit</span>(X_tr, y_tr)   <span class="cm"># params, metrics, model, signature: all logged</span></pre>
+  <a class="demo-link reveal" href="https://mlflow.org/docs/latest/ml/tracking/autolog/" target="_blank" rel="noopener">Open the autolog guide &nbsp;&rarr;</a>
+</section>
+
+<section class="slide">
+  <span class="num">09</span>
+  <div class="eyebrow reveal"><span class="dot" style="background:var(--red)"></span>Example 2 &nbsp;&middot;&nbsp; PyTorch</div>
+  <h2 class="reveal">Autolog via Lightning</h2>
+  <p class="lead reveal">Vanilla PyTorch uses a custom training loop, so MLflow can't autolog it directly. PyTorch Lightning gives autolog the structure it needs.</p>
+  <pre class="reveal"><span class="kw">import</span> mlflow
+<span class="kw">import</span> lightning <span class="kw">as</span> L
+
+mlflow.<span class="fn">autolog</span>()   <span class="cm"># detects Lightning; logs metrics, params, checkpoints</span>
+
+<span class="kw">class</span> <span class="fn">LitModel</span>(L.LightningModule):
+    <span class="kw">def</span> <span class="fn">training_step</span>(self, batch, idx):
+        x, y = batch
+        loss = self.<span class="fn">loss_fn</span>(self(x), y)
+        self.<span class="fn">log</span>(<span class="str">"train_loss"</span>, loss)   <span class="cm"># surfaced by autolog</span>
+        <span class="kw">return</span> loss
+
+trainer = L.<span class="fn">Trainer</span>(max_epochs=<span class="str">5</span>)
+trainer.<span class="fn">fit</span>(model, train_loader)   <span class="cm"># run tracked automatically</span></pre>
+  <div class="callout reveal"><span class="mark">&#9888;</span><p>For a raw PyTorch loop, use manual <b>mlflow.log_metric()</b> calls. Autolog is a Lightning feature.</p></div>
+  <a class="demo-link g reveal" href="https://mlflow.org/docs/latest/ml/deep-learning/pytorch/" target="_blank" rel="noopener">Open the PyTorch guide &nbsp;&rarr;</a>
+</section>
+
+<section class="slide">
+  <span class="num">10</span>
+  <div class="eyebrow reveal"><span class="dot" style="background:var(--yellow)"></span>Try it yourself</div>
+  <h2 class="reveal">Demos &amp; resources</h2>
+  <div class="grid reveal">
+    <div class="card" style="border-left:5px solid var(--blue)"><h3>Autolog quickstart</h3><p>Official walkthrough of <code>mlflow.autolog()</code> across supported libraries.</p><a class="demo-link" href="https://mlflow.org/docs/latest/ml/tracking/autolog/" target="_blank" rel="noopener">mlflow.org/docs &nbsp;&rarr;</a></div>
+    <div class="card" style="border-left:5px solid var(--red)"><h3>Autolog primer (blog)</h3><p>The team's own intro to what autolog captures and why.</p><a class="demo-link" href="https://mlflow.org/blog/mlflow-autolog/" target="_blank" rel="noopener">mlflow.org/blog &nbsp;&rarr;</a></div>
+    <div class="card" style="border-left:5px solid var(--yellow)"><h3>PyTorch deep-learning guide</h3><p>Lightning autolog, resource tracking, and reproducibility.</p><a class="demo-link" href="https://mlflow.org/docs/latest/ml/deep-learning/pytorch/" target="_blank" rel="noopener">PyTorch guide &nbsp;&rarr;</a></div>
+    <div class="card" style="border-left:5px solid var(--green)"><h3>Runnable examples repo</h3><p>End-to-end sklearn and PyTorch train-and-score scripts on GitHub.</p><a class="demo-link g" href="https://github.com/mlflow/mlflow/tree/master/examples" target="_blank" rel="noopener">github.com/mlflow &nbsp;&rarr;</a></div>
+  </div>
+</section>
+
+<section class="slide">
+  <span class="num">11</span>
+  <div class="eyebrow reveal"><span class="dot" style="background:var(--green)"></span>Recap</div>
+  <h2 class="reveal">Summary</h2>
+  <div class="grid reveal">
+    <div class="card" style="border-left:5px solid var(--blue)"><span class="tag" style="color:var(--blue)">What</span><h3>MLflow</h3><p>Open-source platform for the ML lifecycle: tracking, models, registry, and serving.</p></div>
+    <div class="card" style="border-left:5px solid var(--red)"><span class="tag" style="color:var(--red)">How</span><h3>Autolog</h3><p>One call, <code>mlflow.autolog()</code>, captures parameters, metrics, artifacts, and metadata.</p></div>
+    <div class="card" style="border-left:5px solid var(--yellow)"><span class="tag" style="color:var(--yellow)">Why</span><h3>Zero-config</h3><p>Instrument runs without editing training code. Add manual logging only when you want more.</p></div>
+    <div class="card" style="border-left:5px solid var(--green)"><span class="tag" style="color:var(--green)">Where</span><h3>Frameworks</h3><p>scikit-learn works out of the box. PyTorch autologs through Lightning.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <span class="num">12</span>
+  <div class="eyebrow reveal"><span class="dot" style="background:var(--red)"></span>One platform, two modes</div>
+  <h2 class="reveal">MLflow for ML vs GenAI</h2>
+  <p class="lead reveal">Everything so far is the classic ML path. MLflow 3 added a parallel track for LLMs and agents, where the unit of work is a prompt or a trace, not a <code>fit()</code> call.</p>
+  <div class="grid reveal" style="margin-top:1.6rem;">
+    <div class="card" style="border-left:5px solid var(--blue)">
+      <span class="tag" style="color:var(--blue)">Traditional ML</span>
+      <h3>Train &amp; track</h3>
+      <p><b>Unit:</b> a training run.<br><b>Log:</b> <code>mlflow.autolog()</code> captures params, metrics, model.<br><b>Evaluate:</b> <code>mlflow.models.evaluate()</code> for classification and regression.<br><b>Compare:</b> runs side by side in the UI.</p>
+    </div>
+    <div class="card" style="border-left:5px solid var(--green)">
+      <span class="tag" style="color:var(--green)">GenAI &amp; agents</span>
+      <h3>Trace &amp; judge</h3>
+      <p><b>Unit:</b> a prompt or a trace.<br><b>Log:</b> auto-tracing captures prompts, tool calls, tokens, cost.<br><b>Evaluate:</b> <code>mlflow.genai.evaluate()</code> with LLM-as-judge scorers.<br><b>Manage:</b> versioned Prompt Registry.</p>
+    </div>
+  </div>
+  <div class="callout reveal"><span class="mark">&#10022;</span><p>Same registry, same UI, same lineage. If you run both training pipelines and LLM apps, they live in one place.</p></div>
+</section>
+
+<section class="slide" style="align-items:flex-start;">
+  <span class="num">13</span>
+  <div class="brand reveal">
+    <span style="background:var(--blue)"></span><span style="background:var(--red)"></span><span style="background:var(--yellow)"></span><span style="background:var(--green)"></span>
+  </div>
+  <h2 class="reveal" style="font-size:clamp(2rem,4.5vw,3.4rem);">One line in.<br>A full experiment history out.</h2>
+  <p class="lead reveal" style="margin-top:1.5rem;">Start with <b style="color:var(--blue)">mlflow.autolog()</b>, run your training, and open the MLflow UI to compare every run.</p>
+  <pre class="reveal" style="border-left-color:var(--yellow);">mlflow ui  <span class="cm"># then visit localhost:5000</span></pre>
+</section>
+
+<script>
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in-view'); });
+  }, { threshold: 0.35 });
+  document.querySelectorAll('.slide').forEach(s => io.observe(s));
+  const bar = document.getElementById('progress');
+  const onScroll = () => {
+    const h = document.documentElement;
+    bar.style.width = (h.scrollTop / (h.scrollHeight - h.clientHeight) * 100) + '%';
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>
+</body>
+</html>
