@@ -1,0 +1,10 @@
+.env
+.venv/
+.matplotlib-cache/
+.ipynb_checkpoints/
+
+mlflow.db
+mlruns/
+checkpoints/
+
+outputs/.ipynb_checkpoints/
