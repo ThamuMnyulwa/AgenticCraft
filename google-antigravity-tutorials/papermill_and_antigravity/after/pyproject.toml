@@ -1,0 +1,15 @@
+[project]
+name = "titanic-pipeline"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "ipykernel>=7.3.0",
+    "pandas>=3.0.5",
+    "papermill>=2.7.0",
+    "scikit-learn>=1.9.0",
+]
+
+[dependency-groups]
+dev = [
+    "jupyterlab>=4.6.2",
+]
