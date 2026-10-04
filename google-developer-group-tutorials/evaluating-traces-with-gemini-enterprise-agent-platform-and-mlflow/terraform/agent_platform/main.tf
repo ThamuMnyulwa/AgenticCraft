@@ -33,6 +33,15 @@ locals {
     "apphub.googleapis.com",           # the agent's Topology view in the console
     "apptopology.googleapis.com",      # the agent's Topology view in the console
     "cloudapiregistry.googleapis.com", # Agent Platform console: API registry
+    # The rest of the list the Agent Platform console asks for ("Enable APIs" banner).
+    "compute.googleapis.com",
+    "modelarmor.googleapis.com",
+    "networksecurity.googleapis.com",
+    "networkservices.googleapis.com",
+    "notebooks.googleapis.com",
+    "saasservicemgmt.googleapis.com",
+    "securitycenter.googleapis.com",
+    "texttospeech.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "cloudtrace.googleapis.com",
     "iam.googleapis.com",
