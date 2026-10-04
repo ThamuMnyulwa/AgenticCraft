@@ -51,6 +51,7 @@ flowchart LR
 - **Scorers** (`part1_mlflow/scorers.py`):
   - `RelevanceToQuery(model="vertex_ai:/<MODEL>")`, an MLflow built-in LLM judge that runs Gemini on the Agent Platform. `setup()` sets `VERTEX_PROJECT` and `VERTEX_LOCATION` for it.
 - **Model access**: `genai.Client(enterprise=True, project=..., location="global")` with Application Default Credentials. No API key. The client is created lazily, so importing the code makes no network calls and the offline tests need no credentials.
+  - `travel_guidelines`, MLflow's `Guidelines` judge with our own criteria (`JUDGE_GUIDELINE` in `shared/config.py`), also on Gemini. The judge only sees the question and answer, not tool results, so the guideline must be checkable from those alone.
   - `right_tool`, a `@scorer` that reads the trace and checks for a TOOL span with the expected name.
 - **Quality gate**: `evaluate.py --gate` exits with an error if `right_tool` drops below 80% or relevance drops below 100%. 80% leaves room for exactly the one deliberate failure.
 
@@ -67,7 +68,8 @@ flowchart LR
 - **Traffic** (`generate_traces.py`): the five eval questions plus two extra ones, sent with `async_stream_query`.
 - **Evaluation** (`evaluate.py`):
   - `client.evals.run_inference(agent=..., src=dataframe)` runs the questions through the deployed agent.
-  - `client.evals.evaluate(...)` then scores the answers with `FINAL_RESPONSE_QUALITY`, `TOOL_USE_QUALITY` and a custom `right_tool` metric that mirrors Part 1.
+  - `client.evals.evaluate(...)` then scores the answers with the managed judges `FINAL_RESPONSE_QUALITY` and `TOOL_USE_QUALITY`, our own `travel_guidelines` judge (an `LLMMetric` with the same guideline as Part 1), and a custom `right_tool` code metric that mirrors Part 1.
+  - `TOOL_USE_QUALITY` refuses to score a row with no tool calls (400 for the bicycle row). The SDK logs it and leaves the row out of that metric.
   - Results are written to `gs://<bucket>/evals`.
 - **Settings** (`settings.py`): every script reads project, region, bucket and service account from `terraform output`, so Python and Terraform cannot drift apart.
 

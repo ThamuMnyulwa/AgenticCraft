@@ -2,14 +2,14 @@
 
 ## Not verified yet
 
-1. **Part 2 against Google Cloud:** deploy, `async_stream_query` event parsing, `run_inference` with `session_inputs`, the shape of the custom metric input, and writing results to GCS. Checked against SDK source only.
-2. **Model calls to `global` from an agent deployed in `europe-west1`.** Verified for Part 1 on a laptop, not yet from Agent Runtime.
+1. **Traces in Cloud Trace.** Telemetry is on, the exporter is installed, the agent SA has `telemetry.traces.write`, and the logs show no export errors, but the Cloud Trace v1 list API returned no traces. Check the Trace Explorer and the agent's Traces tab in the console.
 3. **The service account roles** beyond `roles/aiplatform.user`. The extra roles are a least-privilege choice and not listed by the docs.
 4. **The MLflow UI tab names** used in the run-of-show.
 
 ## Done since the first plan
 
 - Part 1 verified end to end on 2026-10-04: Gemini on the Agent Platform (`global`), MLflow traces, Vertex judge, exactly one failing row (bicycles), quality gate passes.
+- Part 2 verified end to end on 2026-10-04: deployed to Agent Runtime in `europe-west1` with model calls to `global`, 7 queries answered with the right tools, evaluation with final_response_quality 1.0, travel_guidelines 1.0, right_tool 0.8 (bicycles), results in GCS.
 - Remote Terraform state in `gs://oceanhub-dev-tfstate` (versioned, private), one prefix per stack.
 - Gemini API key in Secret Manager, reused if it exists, else created.
 
