@@ -12,9 +12,13 @@ dependencies = [
 ]
 
 [dependency-groups]
+# google-cloud-aiplatform is needed next to google-cloud-agentplatform: with telemetry on,
+# agentplatform's AdkApp imports google.cloud.aiplatform, which only that package ships.
+# Same version, identical shared files. Without it the deployed agent crashes in set_up().
 agent-runtime = [
     "google-adk>=2.11.0",
     "google-cloud-agentplatform[adk,agent-engines]>=2.3.0",
+    "google-cloud-aiplatform[agent-engines]>=2.3.0",
 ]
 dev = [
     "pytest>=9.1.1",

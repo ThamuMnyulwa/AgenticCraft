@@ -11,6 +11,7 @@ Every API was checked against the installed package source or the current offici
 | `run_inference` + `evaluate` | Kept. We did not use `create_evaluation_run`. | `create_evaluation_run` adds a server-side multi-turn user simulator. Single-turn `run_inference` + `evaluate` is simpler and more predictable for a live talk. |
 | One task-success and one tool-use metric | `FINAL_RESPONSE_QUALITY`, `TOOL_USE_QUALITY`, plus custom `right_tool` | The client SDK has no trajectory metrics yet (a TODO in its source), so `right_tool` is a custom metric, which also mirrors Part 1. |
 | Print the console URL of the evaluation run | Print the GCS browser URL of the results | The SDK has no console-URL helper and the docs do not give a URL pattern. |
+| `google-cloud-agentplatform` is the new SDK | Ship `google-cloud-aiplatform` (same version) next to it in the `agent-runtime` group | The first deploy crashed in `AdkApp.set_up()`: with telemetry on, `agentplatform.frameworks.adk` imports `google.cloud.aiplatform` in several places, and only `google-cloud-aiplatform` ships that module. The two packages share 64 `agentplatform/` files with identical hashes, so installing both is safe. Reproduced locally with the project number and telemetry on, then fixed. |
 | `evaluation` extra is enough | Also depend on `google-cloud-bigquery` directly | `agentplatform.evals` always imports BigQuery, but the `evaluation` extra does not install it. This is a packaging bug in 2.3.0. |
 
 ## MLflow
