@@ -2,7 +2,7 @@
 
 ## Not verified yet
 
-1. **Traces in Cloud Trace.** Telemetry is on, the exporter is installed, the agent SA has `telemetry.traces.write`, and the logs show no export errors, but the Cloud Trace v1 list API returned no traces. Check the Trace Explorer and the agent's Traces tab in the console.
+1. **Traces in Cloud Trace.** The likely cause was found on 2026-10-04: `observability.googleapis.com` was disabled, so Trace Explorer failed with "error fetching project provision state" and spans sent to `telemetry.googleapis.com` (accepted with HTTP 200) never showed up. The API is now in Terraform. Confirm that new agent traces appear in Trace Explorer and on the agent's Traces tab.
 2. **The service account roles** beyond `roles/aiplatform.user`. The extra roles are a least-privilege choice and not listed by the docs.
 3. **The MLflow UI tab names** used in the run-of-show.
 

@@ -85,7 +85,7 @@ Two independent stacks. State is in GCS (`gs://<project>-tfstate`, versioned), o
 | Stack | Resources | Billing |
 |---|---|---|
 | `gemini_api_key/` (optional) | `apikeys`, `generativelanguage` and `secretmanager` APIs. Create mode: an API key restricted to the Gemini API, the `gemini-api-key` secret, and a version written with `secret_data_wo` (not stored in state). Existing mode: reads the secret as data and creates nothing. | Needed for Secret Manager |
-| `agent_platform/` | 9 APIs, a bucket (uniform access, `force_destroy`), the `devfest-agent` service account and its roles | Needed |
+| `agent_platform/` | 11 APIs (including `observability` for trace storage and `apphub` for the Topology view), a bucket (uniform access, `force_destroy`), the `devfest-agent` service account and its roles | Needed |
 
 The agent service account has the following roles:
 
