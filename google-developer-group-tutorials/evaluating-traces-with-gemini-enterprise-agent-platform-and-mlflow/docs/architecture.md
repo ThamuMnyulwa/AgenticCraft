@@ -57,7 +57,7 @@ flowchart LR
   - **Sessions**: `run_agent.py` tags its three traces with one `session_id` (`mlflow.update_current_trace`).
   - **Datasets**: `dataset.py` keeps the `devfest-travel-questions` evaluation dataset in sync with `shared/eval_data.py`; `evaluate()` reads from it, so runs link to it.
   - **Judges**: `evaluate.py` registers the two LLM judges. `right_tool` cannot be registered outside Databricks.
-  - **Review**: `review.py` creates two label schemas (`used_right_tool`, `expected_answer`) and logs scripted example human reviews (source `HUMAN`, metadata `example=true`) on the latest evaluation run. Labeling sessions themselves need Databricks.
+  - **Review**: `review.py` creates the `devfest-review` review queue (`mlflow.genai.review_queues`, experimental) with two review questions (label schemas `used_right_tool`, `expected_answer`), adds the latest evaluation run's traces, logs scripted example human reviews (source `HUMAN`, metadata `example=true`) and marks each item complete.
 - **Quality gate**: `evaluate.py --gate` exits with an error if `right_tool` drops below 80% or relevance drops below 100%. 80% leaves room for exactly the one deliberate failure.
 
 ## Part 2: Gemini Enterprise Agent Platform

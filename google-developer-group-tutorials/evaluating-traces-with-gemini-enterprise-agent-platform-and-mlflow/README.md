@@ -24,7 +24,7 @@ More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture
 │   ├── dataset.py            # eval questions as an MLflow dataset (Datasets page)
 │   ├── scorers.py            # RelevanceToQuery + travel_guidelines (Gemini judges) + right_tool
 │   ├── evaluate.py           # mlflow.genai.evaluate, registers the judges (Judges page)
-│   └── review.py             # review questions + example human reviews (Review page)
+│   └── review.py             # review queue + questions + example human reviews (Review page)
 ├── part2_agent_platform/
 │   ├── agent/agent.py        # the same agent in ADK
 │   ├── settings.py           # reads Terraform outputs
@@ -72,7 +72,7 @@ Run `./demo.sh` with no arguments to list every command.
 | 5:45 | MLflow UI: **Datasets**, open `devfest-travel-questions` | The five questions and the expected tool for each, versioned in MLflow. |
 | 6:00 | MLflow UI: **Evaluation runs**, open the newest run | Five rows, three scorers. Both judges pass every row. |
 | 7:00 | Find the row "How many wheels do 2 bicycles have?" with `right_tool` = No. Open its trace. | The answer is correct (4) but there is no TOOL span. Both judges are happy, the trace says the agent skipped the calculator. The cause is one word in the system prompt: "complex arithmetic". A correct answer can hide the wrong behaviour, and only trace-level evaluation catches it. |
-| 8:30 | Open the bicycle trace's assessments | An example human review sits next to the judges: "Wrong or no tool", with the comment and the expected answer. The **Review** page has the review questions. |
+| 8:30 | Open the bicycle trace's assessments | An example human review sits next to the judges: "Wrong or no tool", with the comment and the expected answer. On the **Review** page, the `devfest-review` queue holds the five traces, all completed by `example-reviewer`. |
 | 9:00 | Hand over to Part 2 slides | Same agent, same questions, now in the cloud. |
 
 ## Pre-talk checklist
