@@ -5,8 +5,9 @@ from mlflow.genai.scorers import RelevanceToQuery, scorer
 
 from shared.config import MODEL
 
-# Built-in LLM judge. "gemini:/<model>" makes Gemini the judge (uses GEMINI_API_KEY).
-relevance = RelevanceToQuery(model=f"gemini:/{MODEL}")
+# Built-in LLM judge. "vertex_ai:/<model>" makes Gemini on the Agent Platform the judge
+# (Application Default Credentials, project and location set in agent.setup()).
+relevance = RelevanceToQuery(model=f"vertex_ai:/{MODEL}")
 
 
 @scorer

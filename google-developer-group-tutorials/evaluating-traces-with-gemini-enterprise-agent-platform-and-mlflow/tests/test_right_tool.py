@@ -12,6 +12,6 @@ def test_passes_when_expected_tool_called():
 
 
 def test_fails_when_no_tool_called():
-    result = right_tool(eval_case("How many legs do 3 spiders have in total?", []))
+    result = right_tool(eval_case("How many wheels do 2 bicycles have?", []))
     assert result["score"] == 0.0
     assert "no tools" in result["explanation"]

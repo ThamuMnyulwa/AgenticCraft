@@ -21,7 +21,9 @@ concurrency:
   group: gdg-traces-${{ github.ref }}
   cancel-in-progress: true
 
-# tests and terraform are offline. evals calls Gemini and needs the GEMINI_API_KEY repo secret.
+# tests and terraform are offline. evals calls Gemini on the Agent Platform and signs in to
+# Google Cloud with Workload Identity Federation (no keys). It is skipped until the repo
+# variables GCP_PROJECT_ID, GCP_WORKLOAD_IDENTITY_PROVIDER and GCP_SERVICE_ACCOUNT are set.
 env:
   DEMO_DIR: google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow
 
@@ -68,21 +70,29 @@ jobs:
     name: MLflow eval quality gate
     needs: tests
     runs-on: ubuntu-latest
-    # Secrets are not available to pull requests from forks, so skip instead of failing.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # Skip until Workload Identity Federation is configured, and for PRs from forks
+    # (they cannot get an identity token for this repo).
+    if: >-
+      vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      contents: read
+      id-token: write # lets google-github-actions/auth exchange the GitHub token
     defaults:
       run:
         working-directory: google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow
     env:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GOOGLE_CLOUD_PROJECT: ${{ vars.GCP_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v7.0.1
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
           cache-dependency-glob: ${{ env.DEMO_DIR }}/uv.lock
-      - name: Check the secret is set
-        run: test -n "$GEMINI_API_KEY" || { echo "::error::Add a GEMINI_API_KEY repository secret"; exit 1; }
       - name: Install dependencies
         run: uv sync --locked
       - name: Run the evaluation with the quality gate

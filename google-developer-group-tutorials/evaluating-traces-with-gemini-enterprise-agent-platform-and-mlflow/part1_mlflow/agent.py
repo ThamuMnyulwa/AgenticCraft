@@ -8,8 +8,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-from shared.config import MODEL, SYSTEM_INSTRUCTION
-from shared.secrets import load_gemini_api_key
+from shared.config import MODEL, MODEL_LOCATION, SYSTEM_INSTRUCTION
 from shared.tools import TOOLS
 
 load_dotenv()
@@ -18,9 +17,18 @@ EXPERIMENT = "devfest-evals"
 TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
 
 
+def project() -> str:
+    value = os.getenv("GOOGLE_CLOUD_PROJECT", "")
+    if not value or value.startswith("your-"):
+        raise SystemExit("Set GOOGLE_CLOUD_PROJECT in .env (Gemini is called through the Agent Platform).")
+    return value
+
+
 def setup() -> None:
-    """Call once before running the agent: finds the API key and turns on tracing."""
-    load_gemini_api_key()  # from .env or CI if set, otherwise from Secret Manager
+    """Call once before running the agent: points the judge at the project and turns on tracing."""
+    # The MLflow judge (vertex_ai provider) reads these two variables.
+    os.environ["VERTEX_PROJECT"] = project()
+    os.environ["VERTEX_LOCATION"] = MODEL_LOCATION
     mlflow.set_tracking_uri(TRACKING_URI)
     mlflow.set_experiment(EXPERIMENT)
     mlflow.gemini.autolog()  # every Gemini call becomes an LLM span
@@ -28,7 +36,8 @@ def setup() -> None:
 
 @cache
 def gemini() -> genai.Client:
-    return genai.Client()  # reads GEMINI_API_KEY, so create it after setup()
+    # Agent Platform, signed in with Application Default Credentials. No API key.
+    return genai.Client(enterprise=True, project=project(), location=MODEL_LOCATION)
 
 
 # Autolog traces the LLM calls. We trace the tools ourselves so they show up as TOOL spans.

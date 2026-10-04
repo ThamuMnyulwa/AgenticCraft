@@ -31,7 +31,7 @@ More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture
 │   ├── evaluate.py           # run_inference + evaluate, results to GCS
 │   └── teardown.py           # delete the deployed agent
 ├── terraform/
-│   ├── gemini_api_key/       # Gemini API key in Secret Manager: reuse or create
+│   ├── gemini_api_key/       # optional: Gemini API key in Secret Manager (AI Studio route)
 │   └── agent_platform/       # APIs, bucket, service account for Part 2
 ├── scripts/
 │   ├── bootstrap-terraform-state.sh  # creates the GCS state bucket, once per project
@@ -44,13 +44,13 @@ More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture
 
 - [uv](https://docs.astral.sh/uv/) (Python 3.14 is installed by uv automatically)
 - [Terraform](https://developer.hashicorp.com/terraform/install) 1.16+ and the [gcloud CLI](https://cloud.google.com/sdk/docs/install), signed in with `gcloud auth application-default login`
-- A Google Cloud project with billing (Secret Manager and Part 2 need it). Without billing, Part 1 still runs if you put an AI Studio key in `.env` as `GEMINI_API_KEY`.
+- A Google Cloud project with billing, signed in with `gcloud auth application-default login`. Both parts call Gemini through the Agent Platform with those credentials, so no API key is needed.
 - Part 2 also needs permission to create service accounts and grant roles (Owner, or Editor plus Project IAM Admin)
 
 ## Quick start
 
 1. `./demo.sh setup` installs dependencies and creates `.env`. Set `GOOGLE_CLOUD_PROJECT` in it, then run `./demo.sh tf-bootstrap` once per project to create the Terraform state bucket.
-2. `./demo.sh api-key` makes sure the Gemini API key is in Secret Manager (`gemini-api-key`). If the secret exists it is reused; if not, Terraform creates a key restricted to the Gemini API and stores it. The key is then copied into your local `.env` (mode 600, gitignored), so runs do not call Secret Manager. Secret Manager stays the source of truth: re-run `api-key` after rotating the key.
+2. `./demo.sh test` runs the offline tests (no credentials needed).
 3. `./demo.sh mlflow-ui` in a second terminal, then open http://localhost:5000
 4. `./demo.sh part1` creates traces and runs the evaluation.
 5. For Part 2 (billing on): `./demo.sh infra-up && ./demo.sh deploy && ./demo.sh traces && ./demo.sh part2`.
@@ -66,7 +66,7 @@ Run `./demo.sh` with no arguments to list every command.
 | 3:00 | MLflow UI: **Experiments**, then **devfest-evals**, then the **Traces** tab. Click the Cape Town trace. | One request is one trace: AGENT span, LLM span, TOOL span `get_weather`, LLM span. Show inputs and outputs on each span. |
 | 5:00 | Show `part1_mlflow/scorers.py` | One LLM judge (Gemini judging Gemini) and one plain Python check that reads the trace. |
 | 6:00 | MLflow UI: the **Evaluations** (evaluation runs) tab, open the newest run | Five rows, two scorers. Relevance passes everywhere. |
-| 7:00 | Find the row "How many legs do 3 spiders have in total?" with `right_tool` = No. Open its trace. | The answer is correct (24) but there is no TOOL span. The judge says relevant, the trace says the agent skipped the calculator. A correct answer can hide the wrong behaviour, and only trace-level evaluation catches it. |
+| 7:00 | Find the row "How many wheels do 2 bicycles have?" with `right_tool` = No. Open its trace. | The answer is correct (4) but there is no TOOL span. The judge says relevant, the trace says the agent skipped the calculator. The cause is one word in the system prompt: "complex arithmetic". A correct answer can hide the wrong behaviour, and only trace-level evaluation catches it. |
 | 9:00 | Hand over to Part 2 slides | Same agent, same questions, now in the cloud. |
 
 ## Pre-talk checklist
@@ -86,13 +86,14 @@ Run `./demo.sh` with no arguments to list every command.
 
 ## Costs and cleanup
 
-- Part 1 uses a few dozen Gemini Flash calls (agent plus judge). With an AI Studio key this fits in the free tier or costs cents.
+- Part 1 is about 21 Gemini Flash calls per run (agent plus judge), roughly $0.05 to $0.30, billed to the Cloud billing account through the Agent Platform.
 - Part 2 costs a little for Agent Runtime while the agent is deployed, plus Gemini calls for inference and the rubric metrics, and a few MB in Cloud Storage. Expect well under a few dollars for a rehearsal and the talk. Check the Agent Platform pricing page for current rates.
 - **After the talk, run `./demo.sh infra-down`.** It deletes the deployed agent, destroys the bucket (including results) and the service account, then deletes the Gemini API key. Enabled APIs are left on.
 
 ## Notes
 
-- Change the model in one place: `shared/config.py`.
+- Change the model in one place: `shared/config.py`. `MODEL_LOCATION` is `global` because `gemini-3.5-flash` is not served from `europe-west1`; the infra stays in `europe-west1`.
+- `./demo.sh api-key` is optional. It keeps a Gemini API key in Secret Manager (reused if it exists) and copies it into `.env` for anyone who wants the AI Studio route. The demo code does not use it: on `oceanhub-dev` the AI Studio prepaid credits are empty, while the Agent Platform bills the Cloud billing account.
 - The MLflow store is `mlflow.db` (SQLite) in this folder. `./demo.sh mlflow-ui` serves it with the same MLflow version that wrote it.
 - `.env`, `mlflow.db`, Terraform state and `.agent_resource` are gitignored. The secret version is written with a write-only attribute, so it is not in Terraform state, but the API key resource still records the key string there. Terraform state lives in `gs://<project>-tfstate` (versioned, private, one prefix per stack), so treat read access to that bucket like access to the key.
 
@@ -104,7 +105,7 @@ Defined at the AgenticCraft repo root.
 - `.github/workflows/gdg-evaluating-traces.yml`: runs when this folder changes, nightly, and on demand.
   - `tests`: `uv sync --locked` and `pytest` (offline).
   - `terraform`: `fmt -check` and `validate` for both stacks (no cloud credentials).
-  - `evals`: runs the Part 1 evaluation with `--gate`. It fails if `right_tool` drops below 80% (so the one deliberate failure is allowed) or relevance below 100%, and uploads `mlflow.db` as an artifact. Needs a `GEMINI_API_KEY` repository secret.
+  - `evals`: runs the Part 1 evaluation with `--gate`. It fails if `right_tool` drops below 80% (so the one deliberate failure is allowed) or relevance below 100%, and uploads `mlflow.db` as an artifact. Signs in with Workload Identity Federation and is skipped until the repo variables `GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_SERVICE_ACCOUNT` exist (see `docs/roadmap.md`).
 - `.github/dependabot.yml`: weekly updates for actions, uv packages and the Terraform provider.
 
 Formatting runs in three places, with the same rules everywhere (root `ruff.toml`):

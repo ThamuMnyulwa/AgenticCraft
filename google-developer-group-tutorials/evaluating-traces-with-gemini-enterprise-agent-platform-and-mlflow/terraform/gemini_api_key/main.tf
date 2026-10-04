@@ -5,7 +5,9 @@
 terraform {
   required_version = ">= 1.16"
 
-  # State lives in GCS. bucket and prefix are passed at init time, see demo.sh tf_init.
+  # State lives in the shared GCS state bucket, under the prefix
+  # agenticcraft/evaluating-traces/gemini_api_key. The bucket is shared by all stacks;
+  # the prefix is per stack. Both are passed at init time by scripts/terraform-init.sh.
   backend "gcs" {}
   required_providers {
     google = {
@@ -18,6 +20,12 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
+
+  # Bill API quota to this project. Needed when running with user credentials
+  # (gcloud auth application-default login): some APIs, like API Keys, reject
+  # calls that do not name a quota project.
+  user_project_override = true
+  billing_project       = var.project_id
 }
 
 resource "google_project_service" "apis" {

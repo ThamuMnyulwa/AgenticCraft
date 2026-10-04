@@ -8,6 +8,8 @@
 # Then copies the key into .env as GEMINI_API_KEY, so local runs do not call Secret Manager.
 # Secret Manager stays the source of truth: re-run this after rotating the key.
 set -euo pipefail
+# Usage: scripts/setup-gemini-secret.sh [--auto-approve]
+# Without --auto-approve, Terraform shows the plan and asks before changing anything.
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 STACK=terraform/gemini_api_key
@@ -34,7 +36,7 @@ else
   echo "Secret ${SECRET_ID} not found. Creating an API key and the secret."
 fi
 
-terraform -chdir="$STACK" apply -input=false \
+terraform -chdir="$STACK" apply "$@" \
   -var "project_id=${GOOGLE_CLOUD_PROJECT}" \
   -var "region=${GOOGLE_CLOUD_LOCATION:-europe-west1}" \
   -var "secret_id=${SECRET_ID}" \

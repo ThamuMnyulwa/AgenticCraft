@@ -53,7 +53,7 @@ Fixers never touch `.ipynb` outputs, `.html` and `.pptx` slides, images, lock fi
 | `ci.yml` | every push and PR | `secrets`: gitleaks over the full history. `pre-commit`: all hooks on all files. |
 | `gdg-evaluating-traces.yml` | changes to this folder, nightly at 05:00 UTC, manual | `tests`: `uv sync --locked` and pytest. `terraform`: fmt and validate for both stacks. `evals`: Part 1 evaluation with `--gate`, uploads `mlflow.db` as an artifact. |
 
-- The `evals` job needs the `GEMINI_API_KEY` repository secret. It skips PRs from forks, which cannot read secrets.
+- The `evals` job signs in with Workload Identity Federation and is skipped until the `GCP_*` repository variables exist (see [setup.md](setup.md)). PRs from forks are skipped because they cannot get an identity token.
 - To inspect a CI evaluation: download the artifact, then run `uv run mlflow server --backend-store-uri sqlite:///mlflow.db`.
 - The nightly run exists to catch model drift. A provider-side model change can break the gate with no code change.
 

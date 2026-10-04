@@ -31,7 +31,7 @@ if __name__ == "__main__":
         print(
             f"  right_tool={str(row['right_tool/value']):5}  "
             f"relevance={str(row['relevance_to_query/value']):4}  "
-            f"{row['inputs']['question']}"
+            f"{row['request']['question']}"
         )
 
     print("\nSummary metrics")

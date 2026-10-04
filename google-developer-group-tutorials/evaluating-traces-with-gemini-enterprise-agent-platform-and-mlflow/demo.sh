@@ -16,7 +16,7 @@ usage() {
   cat <<EOF
 Usage: ./demo.sh <command>
 
-Part 1 (local; the Gemini key comes from Secret Manager, or GEMINI_API_KEY in .env)
+Part 1 (local MLflow; Gemini on the Agent Platform with your gcloud credentials)
   setup        uv sync and create .env from .env.example if missing
   api-key      Gemini API key in Secret Manager (reuse or create), copied into .env
   mlflow-ui    start the MLflow UI on port ${MLFLOW_PORT} (reuses a running one)
@@ -24,7 +24,7 @@ Part 1 (local; the Gemini key comes from Secret Manager, or GEMINI_API_KEY in .e
   test         run the offline unit tests
   lint         ruff check --fix, ruff format and terraform fmt (same as pre-commit)
 
-Part 2 (Google Cloud, needs GOOGLE_CLOUD_PROJECT and gcloud auth)
+Part 2 (Google Cloud: Agent Runtime and the evaluation service)
   tf-bootstrap create the GCS bucket for Terraform state (once per project)
   infra-up     terraform init + apply in terraform/agent_platform/
   deploy       deploy the ADK agent to Agent Runtime
@@ -60,21 +60,13 @@ preflight() {
   step "Preflight ($1)"
   require_cmd uv "See https://docs.astral.sh/uv/"
   load_env
-  if is_set GEMINI_API_KEY; then
-    ok "using GEMINI_API_KEY from the environment"
-  else
-    # The Python code reads the key from Secret Manager instead.
-    require_cmd gcloud "See https://cloud.google.com/sdk/docs/install"
-    require_var GOOGLE_CLOUD_PROJECT
-    require_adc
-    ok "Gemini API key will be read from Secret Manager (${GEMINI_SECRET_ID:-gemini-api-key})"
-  fi
+  # Both parts call Gemini through the Agent Platform with your gcloud credentials.
+  require_cmd gcloud "See https://cloud.google.com/sdk/docs/install"
+  require_var GOOGLE_CLOUD_PROJECT
+  require_adc
   if [[ "$1" == cloud ]]; then
     require_cmd terraform "See https://developer.hashicorp.com/terraform/install"
-    require_cmd gcloud "See https://cloud.google.com/sdk/docs/install"
-    require_var GOOGLE_CLOUD_PROJECT
     require_var GOOGLE_CLOUD_LOCATION
-    require_adc
   fi
   ok "all checks passed"
 }
@@ -85,7 +77,7 @@ cmd_setup() {
   uv sync
   if [[ ! -f .env ]]; then
     cp .env.example .env
-    ok "created .env, now set GOOGLE_CLOUD_PROJECT in it and run ./demo.sh api-key"
+    ok "created .env, now set GOOGLE_CLOUD_PROJECT in it"
   else
     ok ".env already exists"
   fi

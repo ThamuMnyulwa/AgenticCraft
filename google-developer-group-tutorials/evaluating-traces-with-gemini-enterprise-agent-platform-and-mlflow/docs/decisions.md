@@ -19,8 +19,8 @@ Every API was checked against the installed package source or the current offici
 |---|---|---|
 | `uvx mlflow server` | `uv run mlflow server --backend-store-uri sqlite:///mlflow.db` | `uvx` fetches the newest MLflow, which can disagree with the pinned version about the `mlflow.db` schema. |
 | Nested LLM and tool spans | Tools wrapped with `mlflow.trace(span_type="TOOL")` | `mlflow.gemini.autolog()` records LLM calls only, not tool executions. |
-| Gemini as judge model | `RelevanceToQuery(model="gemini:/gemini-3.5-flash")` | `<provider>:/<model>` is the URI format in the MLflow source. The `gemini` provider reads `GEMINI_API_KEY`. |
-| Latest packages | `google-genai` 2.28.0 | MLflow 3.16.1 declares Gemini autolog tested only up to `google-genai` 2.20.0. We checked that autolog still patches 2.28.0. Pin back to `<=2.20.0` if tracing misbehaves. |
+| Gemini as judge model | `RelevanceToQuery(model="vertex_ai:/gemini-3.5-flash")` | `<provider>:/<model>` is the URI format in the MLflow source. The `vertex_ai` provider uses Application Default Credentials and reads `VERTEX_PROJECT` and `VERTEX_LOCATION`. |
+| Latest packages | `google-genai` 2.28.0, `enterprise=True` | MLflow 3.16.1 declares Gemini autolog tested only up to `google-genai` 2.20.0. We checked that autolog still patches 2.28.0. Pin back to `<=2.20.0` if tracing misbehaves. |
 
 ## Repo and tooling
 
@@ -29,8 +29,9 @@ Every API was checked against the installed package source or the current offici
 | Repo `devfest-evals/` | `AgenticCraft/google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow/` | One hub repo for every talk. Per-folder CI uses path filters. The uv project is still named `devfest-evals`. |
 | Python 3.12 | Python 3.14 | The latest Python. Agent Runtime accepts 3.10 to 3.14. |
 | `infra/` | `terraform/` with two stacks | The Gemini API key has its own lifecycle (often shared and long-lived), separate from the Part 2 infra. |
-| Key from AI Studio in `.env` | Key in Secret Manager, read at runtime | Requested. Reuse the secret if it exists, else create it. The key is also copied into the local `.env` (mode 600, gitignored) for convenience, with Secret Manager as the source of truth. The secret version uses the write-only `secret_data_wo`, so it never lands in state. Trade-off: Secret Manager needs billing. |
-| Region with Agent Runtime and evaluation | `europe-west1` | Requested. Supported by both. |
+| Gemini API key (AI Studio) via `GEMINI_API_KEY` | Agent Platform with Application Default Credentials, `location="global"` | The AI Studio prepaid credits on `oceanhub-dev` were empty (402). The Agent Platform bills the Cloud billing account at the same token price, both parts now use one platform, and no key is handled. The Secret Manager key stack stays as an optional AI Studio route. |
+| Region with Agent Runtime and evaluation | `europe-west1` for infra, `global` for model calls | `europe-west1` was requested and supports both services. `gemini-3.5-flash` returns 404 in `europe-west1`, so model calls go to `global`. |
+| "Exactly one row must fail on purpose" | "How many wheels do 2 bicycles have?" plus "complex arithmetic" in the instruction | Gemini 3.5 Flash used the calculator for every arithmetic question with a plain instruction, including the original spider question. The vague word "complex" is a realistic prompt bug; with it the bicycle row skipped the tool in 3 of 3 runs while the other four rows passed. |
 | One preflight check | `preflight local` and `preflight cloud` | `part1` needs only a Gemini key (from the environment or Secret Manager), not the Part 2 tooling. |
 | `eval_data.py` in Part 1 | `shared/eval_data.py` | Both parts score the same questions. |
 | No Docker mentioned, later asked "where necessary" | No Docker | Agent Runtime builds its own container from source. Docker on stage would only add a failure point. See [roadmap.md](roadmap.md) for where Docker would be needed. |

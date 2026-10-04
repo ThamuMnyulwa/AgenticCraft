@@ -38,7 +38,7 @@ flowchart LR
 |---|---|
 | `config.py` | `MODEL` (the one place to change the model) and `SYSTEM_INSTRUCTION` |
 | `tools.py` | `get_weather(city)` and `calculator(expression)`. Fixed fake data, no network, so every run is repeatable. `calculator` parses with `ast` and only allows numbers and `+ - * / **`. |
-| `eval_data.py` | Five questions, each with the tool the agent should use. The spider question fails on purpose: the answer is right, but the agent skips the calculator. |
+| `eval_data.py` | Five questions, each with the tool the agent should use. The bicycle question fails on purpose: the answer is right, but the agent skips the calculator because the instruction says "complex arithmetic". |
 
 ## Part 1: MLflow (local)
 
@@ -49,15 +49,15 @@ flowchart LR
   - The tools are wrapped with `mlflow.trace(span_type="TOOL")`, because autolog does not record tool calls.
 - **Store**: SQLite at `mlflow.db`, served by `./demo.sh mlflow-ui` on port 5000.
 - **Scorers** (`part1_mlflow/scorers.py`):
-  - `RelevanceToQuery(model="gemini:/<MODEL>")`, an MLflow built-in LLM judge that uses Gemini and reads `GEMINI_API_KEY`.
-- **API key** (`shared/secrets.py`): `setup()` sets `GEMINI_API_KEY` before anything calls Gemini. A key already in the environment wins: the local copy that `./demo.sh api-key` writes to `.env`, or the CI secret. Otherwise it is read from Secret Manager (`projects/<GOOGLE_CLOUD_PROJECT>/secrets/<GEMINI_SECRET_ID>/versions/latest`). Nothing is fetched at import time, so the offline tests need no credentials.
+  - `RelevanceToQuery(model="vertex_ai:/<MODEL>")`, an MLflow built-in LLM judge that runs Gemini on the Agent Platform. `setup()` sets `VERTEX_PROJECT` and `VERTEX_LOCATION` for it.
+- **Model access**: `genai.Client(enterprise=True, project=..., location="global")` with Application Default Credentials. No API key. The client is created lazily, so importing the code makes no network calls and the offline tests need no credentials.
   - `right_tool`, a `@scorer` that reads the trace and checks for a TOOL span with the expected name.
 - **Quality gate**: `evaluate.py --gate` exits with an error if `right_tool` drops below 80% or relevance drops below 100%. 80% leaves room for exactly the one deliberate failure.
 
 ## Part 2: Gemini Enterprise Agent Platform
 
 - **SDK**: `google-cloud-agentplatform` (`import agentplatform`). This is the package that replaced `vertexai.Client` after the April 2026 rename.
-- **Agent** (`part2_agent_platform/agent/agent.py`): an ADK `LlmAgent` with the same model, instruction and tools.
+- **Agent** (`part2_agent_platform/agent/agent.py`): an ADK `LlmAgent` with the same model, instruction and tools. The model is `Gemini(model=MODEL, client_kwargs={"enterprise": True, "location": "global"})`, because the agent runs in `europe-west1` but the model is only served from `global`.
 - **Deploy** (`deploy.py`): `client.runtimes.create(agent=AdkApp(agent=root_agent), config={...})`.
   - Telemetry to Cloud Trace is turned on with the `GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true` env var.
   - The agent runs as the Terraform-managed service account.
@@ -77,7 +77,7 @@ Two independent stacks. State is in GCS (`gs://<project>-tfstate`, versioned), o
 
 | Stack | Resources | Billing |
 |---|---|---|
-| `gemini_api_key/` | `apikeys`, `generativelanguage` and `secretmanager` APIs. Create mode: an API key restricted to the Gemini API, the `gemini-api-key` secret, and a version written with `secret_data_wo` (not stored in state). Existing mode: reads the secret as data and creates nothing. | Needed for Secret Manager |
+| `gemini_api_key/` (optional) | `apikeys`, `generativelanguage` and `secretmanager` APIs. Create mode: an API key restricted to the Gemini API, the `gemini-api-key` secret, and a version written with `secret_data_wo` (not stored in state). Existing mode: reads the secret as data and creates nothing. | Needed for Secret Manager |
 | `agent_platform/` | 9 APIs, a bucket (uniform access, `force_destroy`), the `devfest-agent` service account and its roles | Needed |
 
 The agent service account has the following roles:

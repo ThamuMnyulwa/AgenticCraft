@@ -18,12 +18,13 @@ EVAL_DATA = [
         "expectations": {"expected_tool": "calculator"},
     },
     # THIS ROW FAILS ON PURPOSE.
-    # The answer is arithmetic (3 x 8 = 24), so we expect the calculator.
-    # But the question reads like trivia, and the sum is easy, so Gemini
-    # answers from memory without calling a tool. The answer is still right,
-    # which is the point: a correct answer can hide the wrong behaviour.
+    # The answer is arithmetic (2 x 2 = 4), so we expect the calculator.
+    # But the system instruction says "complex arithmetic", the question reads
+    # like trivia, and Gemini answers from memory without calling a tool.
+    # The answer is still right, which is the point: a correct answer can hide
+    # the wrong behaviour, and only the trace shows it. (Failed 3 out of 3 runs.)
     {
-        "inputs": {"question": "How many legs do 3 spiders have in total?"},
+        "inputs": {"question": "How many wheels do 2 bicycles have?"},
         "expectations": {"expected_tool": "calculator"},
     },
 ]
