@@ -15,13 +15,13 @@ More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture
 .
 ├── demo.sh                   # single entry point: ./demo.sh <command>
 ├── shared/                   # used by both parts
-│   ├── config.py             # MODEL and SYSTEM_INSTRUCTION
+│   ├── config.py             # MODEL, MODEL_LOCATION ("global") and SYSTEM_INSTRUCTION
 │   ├── tools.py              # get_weather, calculator (fixed fake data)
 │   └── eval_data.py          # 5 questions + expected tool, one fails on purpose
 ├── part1_mlflow/
 │   ├── agent.py              # google-genai agent, traced with MLflow
 │   ├── run_agent.py          # 3 questions to create traces
-│   ├── scorers.py            # RelevanceToQuery (Gemini judge) + right_tool
+│   ├── scorers.py            # RelevanceToQuery (Gemini judge on Agent Platform) + right_tool
 │   └── evaluate.py           # mlflow.genai.evaluate
 ├── part2_agent_platform/
 │   ├── agent/agent.py        # the same agent in ADK
@@ -43,8 +43,8 @@ More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) (Python 3.14 is installed by uv automatically)
-- [Terraform](https://developer.hashicorp.com/terraform/install) 1.16+ and the [gcloud CLI](https://cloud.google.com/sdk/docs/install), signed in with `gcloud auth application-default login`
-- A Google Cloud project with billing, signed in with `gcloud auth application-default login`. Both parts call Gemini through the Agent Platform with those credentials, so no API key is needed.
+- [Terraform](https://developer.hashicorp.com/terraform/install) 1.16+ and the [gcloud CLI](https://cloud.google.com/sdk/docs/install), signed in with `gcloud auth application-default login`. Both parts call Gemini through the Agent Platform with those credentials, so no API key is needed.
+- A Google Cloud project with billing.
 - Part 2 also needs permission to create service accounts and grant roles (Owner, or Editor plus Project IAM Admin)
 
 ## Quick start

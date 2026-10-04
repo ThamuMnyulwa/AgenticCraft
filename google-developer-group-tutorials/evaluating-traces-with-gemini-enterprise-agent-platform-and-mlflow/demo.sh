@@ -18,7 +18,7 @@ Usage: ./demo.sh <command>
 
 Part 1 (local MLflow; Gemini on the Agent Platform with your gcloud credentials)
   setup        uv sync and create .env from .env.example if missing
-  api-key      Gemini API key in Secret Manager (reuse or create), copied into .env
+  api-key      optional AI Studio route: Gemini API key in Secret Manager, copied into .env
   mlflow-ui    start the MLflow UI on port ${MLFLOW_PORT} (reuses a running one)
   part1        create traces, then run the MLflow evaluation
   test         run the offline unit tests
@@ -32,7 +32,7 @@ Part 2 (Google Cloud: Agent Runtime and the evaluation service)
   part2        run the Agent Platform evaluation
   infra-down   delete the deployed agent, then terraform destroy both stacks
 
-  all          setup, tf-bootstrap, api-key, part1, infra-up, deploy, traces, part2
+  all          setup, tf-bootstrap, part1, infra-up, deploy, traces, part2
 EOF
 }
 
@@ -179,7 +179,6 @@ cmd_infra_down() {
 cmd_all() {
   cmd_setup
   cmd_tf_bootstrap
-  cmd_api_key
   cmd_part1
   cmd_infra_up
   cmd_deploy
