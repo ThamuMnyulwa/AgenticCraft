@@ -28,6 +28,7 @@ provider "google" {
 locals {
   apis = [
     "aiplatform.googleapis.com",
+    "apphub.googleapis.com", # the agent's Topology view in the console
     "cloudresourcemanager.googleapis.com",
     "cloudtrace.googleapis.com",
     "iam.googleapis.com",
