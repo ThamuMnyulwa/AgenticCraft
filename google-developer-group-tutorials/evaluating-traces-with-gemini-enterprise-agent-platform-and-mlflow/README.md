@@ -9,7 +9,7 @@ One small travel assistant (two tools: `get_weather` and `calculator`), evaluate
 
 Both parts use the same five questions (`shared/eval_data.py`). One of them fails on purpose.
 
-More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture.md), [setup](docs/setup.md), [development and CI/CD](docs/development.md), [decisions](docs/decisions.md) and [roadmap](docs/roadmap.md).
+More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture.md), [setup](docs/setup.md), [development and CI/CD](docs/development.md), [decisions](docs/decisions.md), [roadmap](docs/roadmap.md) and [lessons learned](docs/lessons-learned.md).
 
 ```
 .

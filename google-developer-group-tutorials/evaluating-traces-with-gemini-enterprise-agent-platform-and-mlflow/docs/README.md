@@ -9,5 +9,6 @@ How this demo is built, how to run and change it, and why it looks the way it do
 | [development.md](development.md) | You are changing code: formatting, pre-commit, tests, CI/CD, dependency updates |
 | [decisions.md](decisions.md) | You wonder why something differs from the original brief or the docs you remember |
 | [roadmap.md](roadmap.md) | You are planning what to build after the talk, and what is still unverified |
+| [lessons-learned.md](lessons-learned.md) | Something behaves oddly: every problem we hit building this, with cause and fix |
 
 The run-of-show, pre-talk checklist and fallback plan for the talk itself live in the [main README](../README.md).
