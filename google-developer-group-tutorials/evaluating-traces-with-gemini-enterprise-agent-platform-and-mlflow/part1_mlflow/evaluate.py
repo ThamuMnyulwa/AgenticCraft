@@ -8,8 +8,8 @@ import sys
 import mlflow
 
 from part1_mlflow.agent import EXPERIMENT, run_agent, setup
+from part1_mlflow.dataset import get_or_create_dataset
 from part1_mlflow.scorers import SCORERS, register_judges
-from shared.eval_data import EVAL_DATA
 
 UI_URL = "http://localhost:5000"
 
@@ -24,7 +24,8 @@ def pass_rate(values) -> float:
 if __name__ == "__main__":
     setup()
     register_judges()  # so they also show on the MLflow "Judges" page
-    results = mlflow.genai.evaluate(data=EVAL_DATA, predict_fn=run_agent, scorers=SCORERS)
+    dataset = get_or_create_dataset()  # shows on the MLflow "Datasets" page
+    results = mlflow.genai.evaluate(data=dataset, predict_fn=run_agent, scorers=SCORERS)
 
     table = results.result_df
     print("\nPer-row results")

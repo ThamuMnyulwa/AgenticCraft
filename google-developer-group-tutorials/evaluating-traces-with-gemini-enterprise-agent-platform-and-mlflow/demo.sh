@@ -20,7 +20,8 @@ Part 1 (local MLflow; Gemini on the Agent Platform with your gcloud credentials)
   setup        uv sync and create .env from .env.example if missing
   api-key      optional AI Studio route: Gemini API key in Secret Manager, copied into .env
   mlflow-ui    start the MLflow UI on port ${MLFLOW_PORT} (reuses a running one)
-  part1        create traces, then run the MLflow evaluation
+  part1        create traces, run the MLflow evaluation, then add example human reviews
+  review       add example human reviews to the latest evaluation run
   test         run the offline unit tests
   lint         ruff check --fix, ruff format and terraform fmt (same as pre-commit)
 
@@ -101,12 +102,28 @@ cmd_api_key() {
   ./scripts/setup-gemini-secret.sh
 }
 
+# When the MLflow UI is running, log through it, so only one process writes mlflow.db.
+# SQLite allows a single writer; the UI and a script writing at once can stall each other.
+use_mlflow_server_if_running() {
+  if curl -sf "http://localhost:${MLFLOW_PORT}/health" >/dev/null; then
+    export MLFLOW_TRACKING_URI="http://localhost:${MLFLOW_PORT}"
+    ok "logging through the MLflow UI server at ${MLFLOW_TRACKING_URI}"
+  fi
+}
+
 cmd_part1() {
   preflight local
+  use_mlflow_server_if_running
   step "Part 1: running the agent to create traces"
   uv run python -m part1_mlflow.run_agent
   step "Part 1: evaluating with MLflow"
   uv run python -m part1_mlflow.evaluate
+  cmd_review
+}
+
+cmd_review() {
+  step "Part 1: example human reviews"
+  uv run python -m part1_mlflow.review
 }
 
 cmd_lint() {
@@ -191,6 +208,7 @@ case "${1:-}" in
   api-key)    cmd_api_key ;;
   mlflow-ui)  cmd_mlflow_ui ;;
   part1)      cmd_part1 ;;
+  review)     preflight local; use_mlflow_server_if_running; cmd_review ;;
   test)       cmd_test ;;
   lint)       cmd_lint ;;
   tf-bootstrap) cmd_tf_bootstrap ;;

@@ -53,6 +53,11 @@ flowchart LR
 - **Model access**: `genai.Client(enterprise=True, project=..., location="global")` with Application Default Credentials. No API key. The client is created lazily, so importing the code makes no network calls and the offline tests need no credentials.
   - `travel_guidelines`, MLflow's `Guidelines` judge with our own criteria (`JUDGE_GUIDELINE` in `shared/config.py`), also on Gemini. The judge only sees the question and answer, not tool results, so the guideline must be checkable from those alone.
   - `right_tool`, a `@scorer` that reads the trace and checks for a TOOL span with the expected name.
+- **MLflow pages the demo fills**:
+  - **Sessions**: `run_agent.py` tags its three traces with one `session_id` (`mlflow.update_current_trace`).
+  - **Datasets**: `dataset.py` keeps the `devfest-travel-questions` evaluation dataset in sync with `shared/eval_data.py`; `evaluate()` reads from it, so runs link to it.
+  - **Judges**: `evaluate.py` registers the two LLM judges. `right_tool` cannot be registered outside Databricks.
+  - **Review**: `review.py` creates two label schemas (`used_right_tool`, `expected_answer`) and logs scripted example human reviews (source `HUMAN`, metadata `example=true`) on the latest evaluation run. Labeling sessions themselves need Databricks.
 - **Quality gate**: `evaluate.py --gate` exits with an error if `right_tool` drops below 80% or relevance drops below 100%. 80% leaves room for exactly the one deliberate failure.
 
 ## Part 2: Gemini Enterprise Agent Platform

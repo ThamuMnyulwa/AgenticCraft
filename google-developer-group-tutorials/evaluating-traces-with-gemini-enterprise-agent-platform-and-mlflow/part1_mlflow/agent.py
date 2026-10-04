@@ -53,7 +53,10 @@ config = types.GenerateContentConfig(
 
 
 @mlflow.trace(span_type="AGENT")
-def run_agent(question: str) -> str:
+def run_agent(question: str, session_id: str | None = None) -> str:
+    if session_id:
+        # Groups this trace with the rest of the conversation on the MLflow "Sessions" page.
+        mlflow.update_current_trace(session_id=session_id, user="devfest-traveller")
     contents = [types.Content(role="user", parts=[types.Part(text=question)])]
 
     for _ in range(5):  # safety limit on tool round trips
