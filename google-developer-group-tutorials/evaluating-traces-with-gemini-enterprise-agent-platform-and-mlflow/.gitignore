@@ -1,19 +1,10 @@
-.env
-.venv/
-__pycache__/
-.pytest_cache/
+# Only what is specific to this demo. Generic rules (.env, .venv, caches,
+# Terraform state and tfvars) live in the repo root .gitignore.
 
-# MLflow local store
+# MLflow local store, written by Part 1 and served by ./demo.sh mlflow-ui
 mlflow.db
 mlruns/
 mlartifacts/
 
-# Part 2 runtime state
+# Part 2: resource name of the deployed agent, written by deploy.py
 .agent_resource
-
-# Terraform
-terraform/**/.terraform/
-terraform/**/*.tfstate
-terraform/**/*.tfstate.*
-terraform/**/terraform.tfvars
-.DS_Store

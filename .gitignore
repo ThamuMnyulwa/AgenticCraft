@@ -1,14 +1,45 @@
-.DS_Store
+# Repo-wide ignores. Tutorial folders add only what is specific to them.
 
-# Environment files (keep templates)
+# OS and editors
+.DS_Store
+._*
+.idea/
+# Shared editor settings are tracked, personal ones are not.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Secrets and credentials (the pre-commit hooks also block .env and private keys)
 .env
 .env.*
 !.env.example
+.envrc
+*.pem
+application_default_credentials.json
+service-account*.json
+*-sa-key.json
 
 # Python
 .venv/
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
 
-# Terraform
+# Terraform: .terraform.lock.hcl and *.tfvars.example stay tracked
 .terraform/
-*.tfstate*
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+*.tfvars
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Claude Code personal settings
+.claude/settings.local.json
