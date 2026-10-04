@@ -29,7 +29,7 @@ Every API was checked against the installed package source or the current offici
 | Repo `devfest-evals/` | `AgenticCraft/google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow/` | One hub repo for every talk. Per-folder CI uses path filters. The uv project is still named `devfest-evals`. |
 | Python 3.12 | Python 3.14 | The latest Python. Agent Runtime accepts 3.10 to 3.14. |
 | `infra/` | `terraform/` with two stacks | The Gemini API key has its own lifecycle (often shared and long-lived), separate from the Part 2 infra. |
-| Key from AI Studio in `.env` | Key in Secret Manager, read at runtime | Requested. Reuse the secret if it exists, else create it. `.env` keeps only an optional override. The secret version uses the write-only `secret_data_wo`, so it never lands in state. Trade-off: Secret Manager needs billing. |
+| Key from AI Studio in `.env` | Key in Secret Manager, read at runtime | Requested. Reuse the secret if it exists, else create it. The key is also copied into the local `.env` (mode 600, gitignored) for convenience, with Secret Manager as the source of truth. The secret version uses the write-only `secret_data_wo`, so it never lands in state. Trade-off: Secret Manager needs billing. |
 | Region with Agent Runtime and evaluation | `europe-west1` | Requested. Supported by both. |
 | One preflight check | `preflight local` and `preflight cloud` | `part1` needs only a Gemini key (from the environment or Secret Manager), not the Part 2 tooling. |
 | `eval_data.py` in Part 1 | `shared/eval_data.py` | Both parts score the same questions. |

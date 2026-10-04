@@ -50,7 +50,7 @@ flowchart LR
 - **Store**: SQLite at `mlflow.db`, served by `./demo.sh mlflow-ui` on port 5000.
 - **Scorers** (`part1_mlflow/scorers.py`):
   - `RelevanceToQuery(model="gemini:/<MODEL>")`, an MLflow built-in LLM judge that uses Gemini and reads `GEMINI_API_KEY`.
-- **API key** (`shared/secrets.py`): `setup()` sets `GEMINI_API_KEY` before anything calls Gemini. A key already in the environment wins (CI secret, or an override in `.env`). Otherwise it is read from Secret Manager (`projects/<GOOGLE_CLOUD_PROJECT>/secrets/<GEMINI_SECRET_ID>/versions/latest`). Nothing is fetched at import time, so the offline tests need no credentials.
+- **API key** (`shared/secrets.py`): `setup()` sets `GEMINI_API_KEY` before anything calls Gemini. A key already in the environment wins: the local copy that `./demo.sh api-key` writes to `.env`, or the CI secret. Otherwise it is read from Secret Manager (`projects/<GOOGLE_CLOUD_PROJECT>/secrets/<GEMINI_SECRET_ID>/versions/latest`). Nothing is fetched at import time, so the offline tests need no credentials.
   - `right_tool`, a `@scorer` that reads the trace and checks for a TOOL span with the expected name.
 - **Quality gate**: `evaluate.py --gate` exits with an error if `right_tool` drops below 80% or relevance drops below 100%. 80% leaves room for exactly the one deliberate failure.
 

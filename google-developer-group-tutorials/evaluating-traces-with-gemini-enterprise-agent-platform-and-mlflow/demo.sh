@@ -18,7 +18,7 @@ Usage: ./demo.sh <command>
 
 Part 1 (local; the Gemini key comes from Secret Manager, or GEMINI_API_KEY in .env)
   setup        uv sync and create .env from .env.example if missing
-  api-key      put the Gemini API key in Secret Manager: reuse it if it exists, else create it
+  api-key      Gemini API key in Secret Manager (reuse or create), copied into .env
   mlflow-ui    start the MLflow UI on port ${MLFLOW_PORT} (reuses a running one)
   part1        create traces, then run the MLflow evaluation
   test         run the offline unit tests

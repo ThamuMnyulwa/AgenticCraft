@@ -48,7 +48,7 @@ More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture
 ## Quick start
 
 1. `./demo.sh setup` installs dependencies and creates `.env`. Set `GOOGLE_CLOUD_PROJECT` in it.
-2. `./demo.sh api-key` makes sure the Gemini API key is in Secret Manager (`gemini-api-key`). If the secret exists it is reused; if not, Terraform creates a key restricted to the Gemini API and stores it. The code reads it at startup, so the key never sits in `.env`.
+2. `./demo.sh api-key` makes sure the Gemini API key is in Secret Manager (`gemini-api-key`). If the secret exists it is reused; if not, Terraform creates a key restricted to the Gemini API and stores it. The key is then copied into your local `.env` (mode 600, gitignored), so runs do not call Secret Manager. Secret Manager stays the source of truth: re-run `api-key` after rotating the key.
 3. `./demo.sh mlflow-ui` in a second terminal, then open http://localhost:5000
 4. `./demo.sh part1` creates traces and runs the evaluation.
 5. For Part 2 (billing on): `./demo.sh infra-up && ./demo.sh deploy && ./demo.sh traces && ./demo.sh part2`.

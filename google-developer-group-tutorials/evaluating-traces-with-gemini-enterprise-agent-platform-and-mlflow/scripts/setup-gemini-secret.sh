@@ -5,7 +5,8 @@
 #   exists in the project already  -> use it as data, create nothing
 #   does not exist                 -> create a restricted API key and store it
 #
-# The key itself is never written to .env. The Python code reads it from Secret Manager.
+# Then copies the key into .env as GEMINI_API_KEY, so local runs do not call Secret Manager.
+# Secret Manager stays the source of truth: re-run this after rotating the key.
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -40,3 +41,12 @@ terraform -chdir="$STACK" apply -input=false \
   -var "create_secret=${create_secret}"
 
 echo "Gemini API key: $(terraform -chdir="$STACK" output -raw secret_name) ($(terraform -chdir="$STACK" output -raw mode))"
+
+# Copy the key into .env (replace or add the line) without printing it.
+key="$(gcloud secrets versions access latest --secret="$SECRET_ID" --project "$GOOGLE_CLOUD_PROJECT")"
+tmp="$(mktemp)"
+grep -v '^GEMINI_API_KEY=' .env > "$tmp" || true
+echo "GEMINI_API_KEY=${key}" >> "$tmp"
+mv "$tmp" .env
+chmod 600 .env
+echo "Copied the key into .env as GEMINI_API_KEY (${key:0:6}...)"

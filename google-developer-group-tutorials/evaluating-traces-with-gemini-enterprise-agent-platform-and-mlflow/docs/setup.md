@@ -34,7 +34,7 @@ Created by `./demo.sh setup` from `.env.example`, and never committed (gitignore
 | Variable | Needed for | Set by |
 |---|---|---|
 | `GEMINI_SECRET_ID` | Name of the Secret Manager secret with the Gemini key | defaults to `gemini-api-key` |
-| `GEMINI_API_KEY` | Optional override. Leave empty to read from Secret Manager. | you, only if you want to skip Secret Manager (for example a project without billing) |
+| `GEMINI_API_KEY` | Local copy of the key, used directly when set. Empty means read Secret Manager on every run. | `./demo.sh api-key` copies it from Secret Manager. You can also paste an AI Studio key (for example on a project without billing). |
 | `GOOGLE_CLOUD_PROJECT` | Terraform, Part 2 | you |
 | `GOOGLE_CLOUD_LOCATION` | Terraform, Part 2 | defaults to `europe-west1` |
 
@@ -43,7 +43,7 @@ Created by `./demo.sh setup` from `.env.example`, and never committed (gitignore
 ```bash
 ./demo.sh setup        # uv sync, create .env
 # edit .env: GOOGLE_CLOUD_PROJECT
-./demo.sh api-key      # Gemini key in Secret Manager: reuse if it exists, else create
+./demo.sh api-key      # Gemini key in Secret Manager (reuse or create), copied into .env
 ./demo.sh mlflow-ui    # second terminal, http://localhost:5000
 ./demo.sh part1        # traces + MLflow evaluation
 
