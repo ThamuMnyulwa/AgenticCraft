@@ -16,9 +16,9 @@ usage() {
   cat <<EOF
 Usage: ./demo.sh <command>
 
-Part 1 (local, needs GEMINI_API_KEY only)
+Part 1 (local; the Gemini key comes from Secret Manager, or GEMINI_API_KEY in .env)
   setup        uv sync and create .env from .env.example if missing
-  api-key      create a Gemini API key with Terraform and save it to .env (no billing needed)
+  api-key      put the Gemini API key in Secret Manager: reuse it if it exists, else create it
   mlflow-ui    start the MLflow UI on port ${MLFLOW_PORT} (reuses a running one)
   part1        create traces, then run the MLflow evaluation
   test         run the offline unit tests
@@ -31,7 +31,7 @@ Part 2 (Google Cloud, needs GOOGLE_CLOUD_PROJECT and gcloud auth)
   part2        run the Agent Platform evaluation
   infra-down   delete the deployed agent, then terraform destroy both stacks
 
-  all          setup, part1, infra-up, deploy, traces, part2
+  all          setup, api-key, part1, infra-up, deploy, traces, part2
 EOF
 }
 
@@ -45,9 +45,13 @@ load_env() {
 
 require_cmd() { command -v "$1" >/dev/null 2>&1 || die "$1 is not installed. $2"; }
 
-require_var() {
-  local value="${!1:-}"
-  [[ -n "$value" && "$value" != your-* ]] || die "$1 is not set. Edit .env and set it."
+is_set() { local value="${!1:-}"; [[ -n "$value" && "$value" != your-* ]]; }
+
+require_var() { is_set "$1" || die "$1 is not set. Edit .env and set it."; }
+
+require_adc() {
+  gcloud auth application-default print-access-token >/dev/null 2>&1 \
+    || die "No application default credentials. Run: gcloud auth application-default login"
 }
 
 # preflight local: what Part 1 needs. preflight cloud: what Part 2 needs as well.
@@ -55,14 +59,21 @@ preflight() {
   step "Preflight ($1)"
   require_cmd uv "See https://docs.astral.sh/uv/"
   load_env
-  require_var GEMINI_API_KEY
+  if is_set GEMINI_API_KEY; then
+    ok "using GEMINI_API_KEY from the environment"
+  else
+    # The Python code reads the key from Secret Manager instead.
+    require_cmd gcloud "See https://cloud.google.com/sdk/docs/install"
+    require_var GOOGLE_CLOUD_PROJECT
+    require_adc
+    ok "Gemini API key will be read from Secret Manager (${GEMINI_SECRET_ID:-gemini-api-key})"
+  fi
   if [[ "$1" == cloud ]]; then
     require_cmd terraform "See https://developer.hashicorp.com/terraform/install"
     require_cmd gcloud "See https://cloud.google.com/sdk/docs/install"
     require_var GOOGLE_CLOUD_PROJECT
     require_var GOOGLE_CLOUD_LOCATION
-    gcloud auth application-default print-access-token >/dev/null 2>&1 \
-      || die "No application default credentials. Run: gcloud auth application-default login"
+    require_adc
   fi
   ok "all checks passed"
 }
@@ -73,7 +84,7 @@ cmd_setup() {
   uv sync
   if [[ ! -f .env ]]; then
     cp .env.example .env
-    ok "created .env, now add your GEMINI_API_KEY to it"
+    ok "created .env, now set GOOGLE_CLOUD_PROJECT in it and run ./demo.sh api-key"
   else
     ok ".env already exists"
   fi
@@ -90,12 +101,11 @@ cmd_mlflow_ui() {
 }
 
 cmd_api_key() {
-  step "Creating a Gemini API key with Terraform"
+  step "Gemini API key in Secret Manager"
   require_cmd terraform "See https://developer.hashicorp.com/terraform/install"
   require_cmd gcloud "See https://cloud.google.com/sdk/docs/install"
-  gcloud auth application-default print-access-token >/dev/null 2>&1 \
-    || die "No application default credentials. Run: gcloud auth application-default login"
-  ./scripts/create-gemini-api-key.sh
+  require_adc
+  ./scripts/setup-gemini-secret.sh
 }
 
 cmd_part1() {
@@ -167,6 +177,7 @@ cmd_infra_down() {
 
 cmd_all() {
   cmd_setup
+  cmd_api_key
   cmd_part1
   cmd_infra_up
   cmd_deploy

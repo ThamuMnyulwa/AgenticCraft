@@ -24,7 +24,7 @@ gcloud config set project <project-id>
 ## Project
 
 - The demo uses `oceanhub-dev`, set as `GOOGLE_CLOUD_PROJECT` in `.env`.
-- Billing must be linked before Part 2. Check with `gcloud billing projects describe <project-id>`, then link with `gcloud billing projects link <project-id> --billing-account=<id>`.
+- Billing must be linked before `./demo.sh api-key` (Secret Manager requires it) and Part 2. Check with `gcloud billing projects describe <project-id>`, then link with `gcloud billing projects link <project-id> --billing-account=<id>`.
 - To run Terraform you need Owner, or Editor plus Project IAM Admin.
 
 ## `.env`
@@ -33,7 +33,8 @@ Created by `./demo.sh setup` from `.env.example`, and never committed (gitignore
 
 | Variable | Needed for | Set by |
 |---|---|---|
-| `GEMINI_API_KEY` | Part 1 agent and judge | `./demo.sh api-key`, or paste from AI Studio |
+| `GEMINI_SECRET_ID` | Name of the Secret Manager secret with the Gemini key | defaults to `gemini-api-key` |
+| `GEMINI_API_KEY` | Optional override. Leave empty to read from Secret Manager. | you, only if you want to skip Secret Manager (for example a project without billing) |
 | `GOOGLE_CLOUD_PROJECT` | Terraform, Part 2 | you |
 | `GOOGLE_CLOUD_LOCATION` | Terraform, Part 2 | defaults to `europe-west1` |
 
@@ -42,7 +43,7 @@ Created by `./demo.sh setup` from `.env.example`, and never committed (gitignore
 ```bash
 ./demo.sh setup        # uv sync, create .env
 # edit .env: GOOGLE_CLOUD_PROJECT
-./demo.sh api-key      # Terraform creates the Gemini key and writes it to .env
+./demo.sh api-key      # Gemini key in Secret Manager: reuse if it exists, else create
 ./demo.sh mlflow-ui    # second terminal, http://localhost:5000
 ./demo.sh part1        # traces + MLflow evaluation
 

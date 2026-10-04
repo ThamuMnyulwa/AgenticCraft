@@ -1,6 +1,6 @@
 """Ask the agent three questions so we have traces to look at in the MLflow UI."""
 
-from part1_mlflow.agent import run_agent, setup_mlflow
+from part1_mlflow.agent import run_agent, setup
 
 QUESTIONS = [
     "What's the weather like in Cape Town today?",
@@ -9,6 +9,6 @@ QUESTIONS = [
 ]
 
 if __name__ == "__main__":
-    setup_mlflow()
+    setup()
     for question in QUESTIONS:
         print(f"Q: {question}\nA: {run_agent(question)}\n")

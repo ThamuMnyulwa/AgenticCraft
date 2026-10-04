@@ -9,7 +9,8 @@ These are checked against SDK source and docs, but not against a live project.
 3. **Part 2 against Google Cloud:** deploy, `async_stream_query` event parsing, `run_inference` with `session_inputs`, the shape of the custom metric input, and writing results to GCS.
 4. **The service account roles** beyond `roles/aiplatform.user`. The extra roles are a least-privilege choice and not listed by the docs.
 5. **The MLflow UI tab names** used in the run-of-show.
-6. **Billing on `oceanhub-dev`.** It was off at the last check.
+6. **Billing on `oceanhub-dev`.** It was off at the last check, which blocks Secret Manager and Part 2.
+7. **Whether a `gemini-api-key` secret already exists** in `oceanhub-dev`. It could not be listed without billing. `./demo.sh api-key` handles both cases.
 
 ## Phase 2: after the talk
 
@@ -22,4 +23,4 @@ These are checked against SDK source and docs, but not against a live project.
 | Eval-runner Docker image | Continuous evaluation in production | Build in CI, push to Artifact Registry with `dev` and `prod` tags, run nightly as a Cloud Run Job against the deployed agent. This is where Docker becomes necessary. |
 | Shared MLflow server | A team-wide view of traces and evals | MLflow on Cloud Run with Cloud SQL and a GCS artifact store, also containerised |
 | One trace store | See Part 1 and Part 2 traces side by side | Send Agent Runtime OpenTelemetry traces to MLflow, which accepts OTLP |
-| Store the API key in Secret Manager | Keep it out of `.env` and state | Read at runtime, and sync to the GitHub secret from CI |
+| CI reads the key from Secret Manager | Drop the `GEMINI_API_KEY` GitHub secret | Needs Workload Identity Federation, with `roles/secretmanager.secretAccessor` on the `gemini-api-key` secret for the CI identity |

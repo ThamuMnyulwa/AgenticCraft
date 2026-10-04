@@ -7,7 +7,7 @@ import sys
 
 import mlflow
 
-from part1_mlflow.agent import EXPERIMENT, run_agent, setup_mlflow
+from part1_mlflow.agent import EXPERIMENT, run_agent, setup
 from part1_mlflow.scorers import SCORERS
 from shared.eval_data import EVAL_DATA
 
@@ -22,7 +22,7 @@ def pass_rate(values) -> float:
 
 
 if __name__ == "__main__":
-    setup_mlflow()
+    setup()
     results = mlflow.genai.evaluate(data=EVAL_DATA, predict_fn=run_agent, scorers=SCORERS)
 
     table = results.result_df

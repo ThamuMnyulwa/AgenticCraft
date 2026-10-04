@@ -50,6 +50,7 @@ flowchart LR
 - **Store**: SQLite at `mlflow.db`, served by `./demo.sh mlflow-ui` on port 5000.
 - **Scorers** (`part1_mlflow/scorers.py`):
   - `RelevanceToQuery(model="gemini:/<MODEL>")`, an MLflow built-in LLM judge that uses Gemini and reads `GEMINI_API_KEY`.
+- **API key** (`shared/secrets.py`): `setup()` sets `GEMINI_API_KEY` before anything calls Gemini. A key already in the environment wins (CI secret, or an override in `.env`). Otherwise it is read from Secret Manager (`projects/<GOOGLE_CLOUD_PROJECT>/secrets/<GEMINI_SECRET_ID>/versions/latest`). Nothing is fetched at import time, so the offline tests need no credentials.
   - `right_tool`, a `@scorer` that reads the trace and checks for a TOOL span with the expected name.
 - **Quality gate**: `evaluate.py --gate` exits with an error if `right_tool` drops below 80% or relevance drops below 100%. 80% leaves room for exactly the one deliberate failure.
 
@@ -76,7 +77,7 @@ Two independent stacks with local state:
 
 | Stack | Resources | Billing |
 |---|---|---|
-| `gemini_api_key/` | `apikeys` and `generativelanguage` APIs, one API key restricted to the Gemini API | Not needed |
+| `gemini_api_key/` | `apikeys`, `generativelanguage` and `secretmanager` APIs. Create mode: an API key restricted to the Gemini API, the `gemini-api-key` secret, and a version written with `secret_data_wo` (not stored in state). Existing mode: reads the secret as data and creates nothing. | Needed for Secret Manager |
 | `agent_platform/` | 9 APIs, a bucket (uniform access, `force_destroy`), the `devfest-agent` service account and its roles | Needed |
 
 The agent service account has the following roles:
@@ -89,5 +90,13 @@ The agent service account has the following roles:
 | `roles/monitoring.metricWriter` | Write metrics |
 | `roles/serviceusage.serviceUsageConsumer` | Use the enabled APIs |
 | `roles/storage.objectUser` | Read and write objects in the demo bucket only |
+
+`scripts/setup-gemini-secret.sh` chooses the key stack mode on every run, so repeat runs are stable:
+
+| Situation | Mode | Result |
+|---|---|---|
+| Secret is in this stack's state | create | Terraform keeps managing it |
+| Secret exists in the project, not in state | existing | Used as data. No key or version is created, and `infra-down` leaves it alone. |
+| Secret does not exist | create | Key, secret and version are created |
 
 Default region: `europe-west1`. Both Agent Runtime and evaluation support it.

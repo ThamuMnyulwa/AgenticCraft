@@ -31,10 +31,10 @@ More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture
 │   ├── evaluate.py           # run_inference + evaluate, results to GCS
 │   └── teardown.py           # delete the deployed agent
 ├── terraform/
-│   ├── gemini_api_key/       # Gemini API key as code (no billing needed)
+│   ├── gemini_api_key/       # Gemini API key in Secret Manager: reuse or create
 │   └── agent_platform/       # APIs, bucket, service account for Part 2
 ├── scripts/
-│   └── create-gemini-api-key.sh  # applies gemini_api_key and writes the key to .env
+│   └── setup-gemini-secret.sh    # picks reuse or create, then applies gemini_api_key
 └── tests/                    # offline unit tests (./demo.sh test)
 ```
 
@@ -42,13 +42,13 @@ More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture
 
 - [uv](https://docs.astral.sh/uv/) (Python 3.14 is installed by uv automatically)
 - [Terraform](https://developer.hashicorp.com/terraform/install) 1.16+ and the [gcloud CLI](https://cloud.google.com/sdk/docs/install), signed in with `gcloud auth application-default login`
-- A Google Cloud project. Part 1 works without billing. Part 2 needs billing.
+- A Google Cloud project with billing (Secret Manager and Part 2 need it). Without billing, Part 1 still runs if you put an AI Studio key in `.env` as `GEMINI_API_KEY`.
 - Part 2 also needs permission to create service accounts and grant roles (Owner, or Editor plus Project IAM Admin)
 
 ## Quick start
 
 1. `./demo.sh setup` installs dependencies and creates `.env`. Set `GOOGLE_CLOUD_PROJECT` in it.
-2. `./demo.sh api-key` creates a Gemini API key with Terraform (restricted to the Gemini API) and writes it to `.env`. Prefer AI Studio? Paste a key from https://aistudio.google.com/apikey into `.env` instead.
+2. `./demo.sh api-key` makes sure the Gemini API key is in Secret Manager (`gemini-api-key`). If the secret exists it is reused; if not, Terraform creates a key restricted to the Gemini API and stores it. The code reads it at startup, so the key never sits in `.env`.
 3. `./demo.sh mlflow-ui` in a second terminal, then open http://localhost:5000
 4. `./demo.sh part1` creates traces and runs the evaluation.
 5. For Part 2 (billing on): `./demo.sh infra-up && ./demo.sh deploy && ./demo.sh traces && ./demo.sh part2`.
@@ -92,7 +92,7 @@ Run `./demo.sh` with no arguments to list every command.
 
 - Change the model in one place: `shared/config.py`.
 - The MLflow store is `mlflow.db` (SQLite) in this folder. `./demo.sh mlflow-ui` serves it with the same MLflow version that wrote it.
-- `.env`, `mlflow.db`, Terraform state and `.agent_resource` are gitignored. Terraform state is local and holds the API key in plain text, which is why `.env` is `chmod 600` and state never leaves the laptop. Move state to a GCS backend before running this from CI.
+- `.env`, `mlflow.db`, Terraform state and `.agent_resource` are gitignored. The secret version is written with a write-only attribute, so it is not in Terraform state, but the API key resource still records the key string there. State is local and never leaves the laptop. Move it to a GCS backend before running Terraform from CI.
 
 ## CI/CD
 
