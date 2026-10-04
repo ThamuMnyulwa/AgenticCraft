@@ -1,0 +1,19 @@
+# Repo-wide ruff configuration. Sub-projects inherit this unless they define their own.
+line-length = 110
+target-version = "py312"
+# Notebooks are excluded: ruff format would rewrite tutorial notebook cells.
+extend-exclude = ["**/.venv", "**/mlruns", "*.ipynb"]
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[lint.isort]
+# Top-level packages of the GDG evaluating-traces demo, so imports group the same everywhere.
+known-first-party = ["shared", "part1_mlflow", "part2_agent_platform", "tests"]
+
+[format]
+docstring-code-format = true
+
+[lint.per-file-ignores]
+# python-pptx helpers use Inches(...) as immutable default arguments by design.
+"mlflow-tutorials/tutorial_2_autolog_in_mlflow/scripts/html_slides_to_pptx.py" = ["B008"]

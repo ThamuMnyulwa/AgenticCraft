@@ -1,0 +1,19 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+
+# MLflow local store
+mlflow.db
+mlruns/
+mlartifacts/
+
+# Part 2 runtime state
+.agent_resource
+
+# Terraform
+terraform/**/.terraform/
+terraform/**/*.tfstate
+terraform/**/*.tfstate.*
+terraform/**/terraform.tfvars
+.DS_Store

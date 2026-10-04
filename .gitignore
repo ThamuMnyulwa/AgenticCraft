@@ -1,1 +1,14 @@
 .DS_Store
+
+# Environment files (keep templates)
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+
+# Terraform
+.terraform/
+*.tfstate*

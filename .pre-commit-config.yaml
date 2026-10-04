@@ -1,0 +1,90 @@
+# Repo-wide pre-commit hooks for AgenticCraft.
+# Install once per clone:   uvx pre-commit install
+# Run on everything:        uvx pre-commit run --all-files
+# Update hook versions:     uvx pre-commit autoupdate
+
+repos:
+  # Secret scanning
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # General hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: end-of-file-fixer
+        # Generated, binary or vendored content that auto-fixers must never rewrite.
+        # Secret scanning (gitleaks) still sees these files.
+        exclude: &fixer_exclude >-
+          (?x)(
+            \.ipynb$|
+            (^|/)outputs/|
+            \.html$|
+            \.pptx$|
+            \.(png|jpe?g|gif|svg|ico|pdf)$|
+            \.csv$|
+            (^|/)uv\.lock$|
+            \.db$|
+            (^|/)mlruns/|
+            \.terraform\.lock\.hcl$
+          )
+      - id: trailing-whitespace
+        args: ["--markdown-linebreak-ext=md"]
+        exclude: *fixer_exclude
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+        exclude: *fixer_exclude
+
+  # Never commit real environment files (.env.example is fine)
+  - repo: local
+    hooks:
+      - id: forbid-env-files
+        name: forbid committing .env files
+        entry: ".env files hold secrets and must not be committed; use .env.example instead"
+        language: fail
+        files: '(^|/)\.env(\..+)?$'
+        exclude: '(^|/)\.env\.example$'
+
+  # Python lint + format (config in ruff.toml; notebooks excluded there)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10
+    hooks:
+      - id: ruff-check
+        args: ["--fix"]
+        types_or: [python, pyi]
+      - id: ruff-format
+        # Python files only: do not reformat code blocks inside Markdown docs.
+        types_or: [python, pyi]
+
+  # Notebooks: strip outputs from source notebooks only.
+  # Folders named outputs/ hold intentionally executed tutorial notebooks.
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.9.1
+    hooks:
+      - id: nbstripout
+        # Keep the existing cell ids so papermill parameter cells stay stable.
+        args: ["--keep-id"]
+        exclude: '(^|/)outputs/'
+
+  # Shell scripts
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+
+  # Terraform formatting (validate runs in CI where providers are downloaded)
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.109.2
+    hooks:
+      - id: terraform_fmt

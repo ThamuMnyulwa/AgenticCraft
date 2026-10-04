@@ -1,0 +1,25 @@
+# Keeps actions, Python dependencies and Terraform providers on their latest versions.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: uv
+    directory: /google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: terraform
+    directories:
+      - /google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow/terraform/agent_platform
+      - /google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow/terraform/gemini_api_key
+    schedule:
+      interval: weekly

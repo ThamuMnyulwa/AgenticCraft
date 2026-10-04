@@ -1,0 +1,95 @@
+name: GDG evaluating traces demo
+
+on:
+  push:
+    paths:
+      - "google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow/**"
+      - ".github/workflows/gdg-evaluating-traces.yml"
+  pull_request:
+    paths:
+      - "google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow/**"
+      - ".github/workflows/gdg-evaluating-traces.yml"
+  schedule:
+    - cron: "0 5 * * *" # nightly, catches model drift even when nobody pushes
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gdg-traces-${{ github.ref }}
+  cancel-in-progress: true
+
+# tests and terraform are offline. evals calls Gemini and needs the GEMINI_API_KEY repo secret.
+env:
+  DEMO_DIR: google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow
+
+jobs:
+  tests:
+    name: uv sync + pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: ${{ env.DEMO_DIR }}/uv.lock
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Run tests
+        run: uv run pytest -q
+
+  terraform:
+    name: terraform fmt + validate (${{ matrix.stack }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        stack: [gemini_api_key, agent_platform]
+    defaults:
+      run:
+        working-directory: google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: hashicorp/setup-terraform@v4.0.1
+        with:
+          terraform_wrapper: false
+      - name: terraform fmt
+        run: terraform -chdir=terraform/${{ matrix.stack }} fmt -check
+      - name: terraform init (no backend)
+        run: terraform -chdir=terraform/${{ matrix.stack }} init -backend=false -input=false
+      - name: terraform validate
+        run: terraform -chdir=terraform/${{ matrix.stack }} validate
+
+  evals:
+    name: MLflow eval quality gate
+    needs: tests
+    runs-on: ubuntu-latest
+    # Secrets are not available to pull requests from forks, so skip instead of failing.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    defaults:
+      run:
+        working-directory: google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: ${{ env.DEMO_DIR }}/uv.lock
+      - name: Check the secret is set
+        run: test -n "$GEMINI_API_KEY" || { echo "::error::Add a GEMINI_API_KEY repository secret"; exit 1; }
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Run the evaluation with the quality gate
+        run: uv run python -m part1_mlflow.evaluate --gate
+      - name: Upload the MLflow store (open it with mlflow server --backend-store-uri sqlite:///mlflow.db)
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: mlflow-eval-${{ github.run_id }}
+          path: ${{ env.DEMO_DIR }}/mlflow.db
+          if-no-files-found: ignore

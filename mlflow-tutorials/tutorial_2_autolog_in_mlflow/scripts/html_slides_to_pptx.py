@@ -13,7 +13,6 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 
-
 BLUE = RGBColor(0x42, 0x85, 0xF4)
 RED = RGBColor(0xEA, 0x43, 0x35)
 YELLOW = RGBColor(0xFB, 0xBC, 0x04)
@@ -53,12 +52,25 @@ def add_text(slide, text, x, y, w, h, *, size=22, color=INK, bold=False, font="A
 
 
 def slide_number(slide, n: int) -> None:
-    add_text(slide, f"{n:02d}", Inches(11.8), Inches(0.35), Inches(0.6), Inches(0.25), size=10, color=GREY, bold=True, align=PP_ALIGN.RIGHT)
+    add_text(
+        slide,
+        f"{n:02d}",
+        Inches(11.8),
+        Inches(0.35),
+        Inches(0.6),
+        Inches(0.25),
+        size=10,
+        color=GREY,
+        bold=True,
+        align=PP_ALIGN.RIGHT,
+    )
 
 
 def brand_dots(slide, y=Inches(0.95)) -> None:
     for i, color in enumerate(ACCENTS):
-        dot = slide.shapes.add_shape(MSO_SHAPE.OVAL, MARGIN_X + i * Inches(0.26), y, Inches(0.19), Inches(0.19))
+        dot = slide.shapes.add_shape(
+            MSO_SHAPE.OVAL, MARGIN_X + i * Inches(0.26), y, Inches(0.19), Inches(0.19)
+        )
         dot.fill.solid()
         dot.fill.fore_color.rgb = color
         dot.line.fill.background()
@@ -69,7 +81,17 @@ def eyebrow(slide, text: str, accent=BLUE) -> None:
     dot.fill.solid()
     dot.fill.fore_color.rgb = accent
     dot.line.fill.background()
-    add_text(slide, text.upper(), MARGIN_X + Inches(0.22), TOP_Y - Inches(0.03), Inches(8.5), Inches(0.28), size=10, color=GREY, bold=True)
+    add_text(
+        slide,
+        text.upper(),
+        MARGIN_X + Inches(0.22),
+        TOP_Y - Inches(0.03),
+        Inches(8.5),
+        Inches(0.28),
+        size=10,
+        color=GREY,
+        bold=True,
+    )
 
 
 def title(slide, text: str, y=Inches(1.12), size=34) -> None:
@@ -115,10 +137,29 @@ def card(slide, x, y, w, h, title_text: str, body: str, *, tag=None, accent=BLUE
     marker.line.fill.background()
     ty = y + Inches(0.25)
     if tag:
-        add_text(slide, tag.upper(), x + Inches(0.28), ty, w - Inches(0.5), Inches(0.2), size=8, color=accent, bold=True)
+        add_text(
+            slide,
+            tag.upper(),
+            x + Inches(0.28),
+            ty,
+            w - Inches(0.5),
+            Inches(0.2),
+            size=8,
+            color=accent,
+            bold=True,
+        )
         ty += Inches(0.28)
     add_text(slide, title_text, x + Inches(0.28), ty, w - Inches(0.5), Inches(0.3), size=15, bold=True)
-    add_text(slide, body, x + Inches(0.28), ty + Inches(0.42), w - Inches(0.5), h - Inches(0.75), size=11, color=GREY)
+    add_text(
+        slide,
+        body,
+        x + Inches(0.28),
+        ty + Inches(0.42),
+        w - Inches(0.5),
+        h - Inches(0.75),
+        size=11,
+        color=GREY,
+    )
 
 
 def cards_grid(slide, cards, y=Inches(2.45)) -> None:
@@ -133,7 +174,9 @@ def cards_grid(slide, cards, y=Inches(2.45)) -> None:
 def bullets(slide, items, y=Inches(2.25)) -> None:
     for i, item in enumerate(items):
         cy = y + i * Inches(0.72)
-        bar = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, MARGIN_X, cy + Inches(0.04), Inches(0.07), Inches(0.5))
+        bar = slide.shapes.add_shape(
+            MSO_SHAPE.ROUNDED_RECTANGLE, MARGIN_X, cy + Inches(0.04), Inches(0.07), Inches(0.5)
+        )
         bar.fill.solid()
         bar.fill.fore_color.rgb = ACCENTS[i % 4]
         bar.line.fill.background()
@@ -184,7 +227,9 @@ def section_data(section):
             {
                 "title": clean(c.find("h3").get_text(" ", strip=True)) if c.find("h3") else "",
                 "body": clean(c.find("p").get_text(" ", strip=True)) if c.find("p") else "",
-                "tag": clean(c.select_one(".tag").get_text(" ", strip=True)) if c.select_one(".tag") else None,
+                "tag": clean(c.select_one(".tag").get_text(" ", strip=True))
+                if c.select_one(".tag")
+                else None,
             }
         )
     bullet_data = []
@@ -199,7 +244,9 @@ def section_data(section):
         "cards": card_data,
         "bullets": bullet_data,
         "pre": section.find_all("pre"),
-        "callout": clean(section.select_one(".callout").get_text(" ", strip=True)) if section.select_one(".callout") else "",
+        "callout": clean(section.select_one(".callout").get_text(" ", strip=True))
+        if section.select_one(".callout")
+        else "",
     }
 
 
@@ -221,16 +268,36 @@ def convert(html_path: Path, pptx_path: Path) -> None:
             brand_dots(slide)
             if path := logo_path(section):
                 slide.shapes.add_picture(str(path), MARGIN_X, Inches(1.45), width=Inches(3.05))
-            add_text(slide, data["title"], MARGIN_X, Inches(3.6), Inches(8.8), Inches(0.55), size=26, color=GREY)
+            add_text(
+                slide, data["title"], MARGIN_X, Inches(3.6), Inches(8.8), Inches(0.55), size=26, color=GREY
+            )
             lead(slide, data["lead"], y=Inches(4.6))
             continue
 
         if n == 13:
             brand_dots(slide)
-            add_text(slide, data["title"].replace(". ", ".\n"), MARGIN_X, Inches(1.65), Inches(9.0), Inches(1.5), size=34, bold=True)
+            add_text(
+                slide,
+                data["title"].replace(". ", ".\n"),
+                MARGIN_X,
+                Inches(1.65),
+                Inches(9.0),
+                Inches(1.5),
+                size=34,
+                bold=True,
+            )
             lead(slide, data["lead"], y=Inches(3.5))
             if data["pre"]:
-                code_block(slide, data["pre"][0].get_text(), MARGIN_X, Inches(4.65), Inches(6.0), Inches(0.75), accent=YELLOW, size=14)
+                code_block(
+                    slide,
+                    data["pre"][0].get_text(),
+                    MARGIN_X,
+                    Inches(4.65),
+                    Inches(6.0),
+                    Inches(0.75),
+                    accent=YELLOW,
+                    size=14,
+                )
             continue
 
         eyebrow(slide, data["eyebrow"] or f"Slide {n}", ACCENTS[(n - 1) % 4])
@@ -244,10 +311,48 @@ def convert(html_path: Path, pptx_path: Path) -> None:
         elif data["bullets"]:
             bullets(slide, data["bullets"], y=Inches(2.35 if data["lead"] else 2.15))
         elif n == 7 and len(data["pre"]) >= 2:
-            add_text(slide, "Before", MARGIN_X, Inches(2.05), Inches(4.2), Inches(0.28), size=12, color=RED, bold=True)
-            add_text(slide, "After", Inches(7.05), Inches(2.05), Inches(4.2), Inches(0.28), size=12, color=GREEN, bold=True)
-            code_block(slide, data["pre"][0].get_text(), MARGIN_X, Inches(2.42), Inches(5.55), Inches(3.75), accent=RED, size=10)
-            code_block(slide, data["pre"][1].get_text(), Inches(7.05), Inches(2.42), Inches(4.7), Inches(2.0), accent=GREEN, size=12)
+            add_text(
+                slide,
+                "Before",
+                MARGIN_X,
+                Inches(2.05),
+                Inches(4.2),
+                Inches(0.28),
+                size=12,
+                color=RED,
+                bold=True,
+            )
+            add_text(
+                slide,
+                "After",
+                Inches(7.05),
+                Inches(2.05),
+                Inches(4.2),
+                Inches(0.28),
+                size=12,
+                color=GREEN,
+                bold=True,
+            )
+            code_block(
+                slide,
+                data["pre"][0].get_text(),
+                MARGIN_X,
+                Inches(2.42),
+                Inches(5.55),
+                Inches(3.75),
+                accent=RED,
+                size=10,
+            )
+            code_block(
+                slide,
+                data["pre"][1].get_text(),
+                Inches(7.05),
+                Inches(2.42),
+                Inches(4.7),
+                Inches(2.0),
+                accent=GREEN,
+                size=12,
+            )
         elif data["pre"]:
             h = Inches(3.85 if n == 8 else 3.35 if n == 9 else 2.55)
             size = 9 if n in {8, 9} else 12
