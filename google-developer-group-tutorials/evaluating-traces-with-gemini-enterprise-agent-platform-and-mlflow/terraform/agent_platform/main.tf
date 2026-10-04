@@ -98,3 +98,19 @@ resource "google_storage_bucket_iam_member" "agent_bucket" {
   role   = "roles/storage.objectUser"
   member = google_service_account.agent.member
 }
+
+# Our own LLM judge, registered with the platform so the console can use it
+# (Evaluation > Metrics, and the new experiment / online monitor wizards).
+# Same prompt file as part2_agent_platform/evaluate.py.
+resource "google_vertex_ai_evaluation_metric" "travel_guidelines" {
+  region       = var.region
+  display_name = "travel_guidelines"
+  description  = "Friendly, direct, plain-language answers (same guideline as the MLflow judge in Part 1)."
+  metric = jsonencode({
+    llmBasedMetricSpec = {
+      metricPromptTemplate = trimspace(file("${path.module}/../../shared/judge_prompt.txt"))
+    }
+  })
+
+  depends_on = [google_project_service.apis]
+}

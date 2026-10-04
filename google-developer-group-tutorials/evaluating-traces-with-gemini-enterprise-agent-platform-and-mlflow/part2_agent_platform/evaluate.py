@@ -10,6 +10,7 @@ Agent Platform console. right_tool is Python, so it cannot run in the service.
 
 import json
 import time
+from pathlib import Path
 
 import agentplatform
 import pandas as pd
@@ -17,7 +18,6 @@ from agentplatform import types
 
 from part2_agent_platform.agent.agent import root_agent
 from part2_agent_platform.settings import load_agent_resource, load_settings
-from shared.config import JUDGE_GUIDELINE
 from shared.eval_data import EVAL_DATA
 
 EXPECTED_TOOL = {row["inputs"]["question"]: row["expectations"]["expected_tool"] for row in EVAL_DATA}
@@ -56,18 +56,10 @@ def get_or_create_experiment(client) -> str:
 
 
 # Our own LLM judge, with the same guideline as Part 1's MLflow Guidelines scorer.
-# The eval service fills in {prompt} and {response} and expects the judge to reply
-# in JSON ({{ and }} are literal braces). MetricPromptBuilder does not ask for JSON,
-# so the service could not parse its replies; this explicit prompt fixes that.
-JUDGE_PROMPT = (
-    "You are judging the answer of a travel assistant.\n\n"
-    f"Guideline: {JUDGE_GUIDELINE}\n\n"
-    "User question:\n{prompt}\n\n"
-    "Assistant answer:\n{response}\n\n"
-    "Reply with JSON only, no other text, in exactly this form:\n"
-    '{{"score": 1, "explanation": "one sentence"}}\n'
-    "Use score 1 if the answer meets the guideline and 0 if it does not."
-)
+# The prompt lives in shared/judge_prompt.txt, which Terraform also registers as a
+# platform metric. The service fills in {prompt} and {response} and expects JSON back
+# ({{ and }} are literal braces).
+JUDGE_PROMPT = (Path(__file__).resolve().parent.parent / "shared" / "judge_prompt.txt").read_text().strip()
 travel_guidelines = types.LLMMetric(name="travel_guidelines", prompt_template=JUDGE_PROMPT)
 
 
