@@ -34,6 +34,7 @@ locals {
     "iam.googleapis.com",
     "logging.googleapis.com",
     "monitoring.googleapis.com",
+    "observability.googleapis.com", # trace storage and Trace Explorer for telemetry.googleapis.com
     "serviceusage.googleapis.com",
     "storage.googleapis.com",
     "telemetry.googleapis.com",
