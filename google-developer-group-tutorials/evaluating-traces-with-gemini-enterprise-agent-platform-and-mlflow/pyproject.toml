@@ -1,0 +1,33 @@
+[project]
+name = "devfest-evals"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "google-adk>=2.11.0",
+    "google-cloud-agentplatform[adk,agent-engines,evaluation]>=2.3.0",
+    "google-cloud-bigquery>=3.46.1",
+    "google-genai>=2.28.0",
+    "mlflow>=3.16.1",
+    "python-dotenv>=1.2.4",
+]
+
+[dependency-groups]
+# google-cloud-aiplatform is needed next to google-cloud-agentplatform: with telemetry on,
+# agentplatform's AdkApp imports google.cloud.aiplatform, which only that package ships.
+# Same version, identical shared files. Without it the deployed agent crashes in set_up().
+agent-runtime = [
+    "google-adk>=2.11.0",
+    "google-cloud-agentplatform[adk,agent-engines]>=2.3.0",
+    "google-cloud-aiplatform[agent-engines]>=2.3.0",
+]
+dev = [
+    "pytest>=9.1.1",
+    "ruff==0.16.10",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.uv]
+# The agent-runtime group is what deploy.py ships to Agent Runtime, pinned from uv.lock.
+default-groups = ["dev", "agent-runtime"]

@@ -1,0 +1,13 @@
+# Only what is specific to this demo. Generic rules (.env, .venv, caches,
+# Terraform state and tfvars) live in the repo root .gitignore.
+
+# MLflow local store, written by Part 1 and served by ./demo.sh mlflow-ui
+mlflow.db
+mlruns/
+mlartifacts/
+
+# Part 2: resource name of the deployed agent, written by deploy.py
+.agent_resource
+
+# HTML evaluation reports written by part2_agent_platform/evaluate.py
+reports/

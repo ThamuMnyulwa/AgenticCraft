@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "charliermarshall.ruff",
+    "hashicorp.terraform",
+    "timonwong.shellcheck"
+  ]
+}
