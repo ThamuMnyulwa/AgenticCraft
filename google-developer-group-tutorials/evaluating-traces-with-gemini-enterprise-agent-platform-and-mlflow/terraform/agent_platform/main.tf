@@ -27,8 +27,12 @@ provider "google" {
 # APIs listed on the Agent Runtime setup page, plus IAM and Service Usage for this config.
 locals {
   apis = [
+    "agentidentity.googleapis.com", # Agent Platform console: agent identity
+    "agentregistry.googleapis.com", # Agent Platform console: Agent Registry
     "aiplatform.googleapis.com",
-    "apphub.googleapis.com", # the agent's Topology view in the console
+    "apphub.googleapis.com",           # the agent's Topology view in the console
+    "apptopology.googleapis.com",      # the agent's Topology view in the console
+    "cloudapiregistry.googleapis.com", # Agent Platform console: API registry
     "cloudresourcemanager.googleapis.com",
     "cloudtrace.googleapis.com",
     "iam.googleapis.com",
