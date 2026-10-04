@@ -105,15 +105,19 @@ if __name__ == "__main__":
         config={"dest": results_uri},
     )
 
-    print("\nPer-row results")
+    # One Markdown table: question, the agent's answer, the tools it called (from the
+    # trace), and every score. Paste it straight into slides or a README.
     names = ["final_response_quality_v1", "tool_use_quality_v1", "travel_guidelines", "right_tool"]
-    for question, case in zip(questions, result.eval_case_results, strict=True):
+    print("\n| Question | Answer | Tools called | " + " | ".join(n.removesuffix("_v1") for n in names) + " |")
+    print("|---" * (3 + len(names)) + "|")
+    for row, case in zip(answered.to_dict("records"), result.eval_case_results, strict=True):
+        response = row["response"]
+        answer = response if isinstance(response, str) else " ".join(find_values(response, "text"))
+        tools = [call["name"] for call in find_values(row.get("intermediate_events") or [], "function_call")]
         scores = case.response_candidate_results[0].metric_results
-        cells = [
-            f"{name.removesuffix('_v1')}={scores[name].score if scores[name].score is not None else 'n/a'}"
-            for name in names
-        ]
-        print(f"  {'  '.join(cells)}  {question}")
+        cells = [str(scores[n].score) if scores[n].score is not None else "n/a" for n in names]
+        cols = [row["prompt"], answer.strip().replace("|", "/"), ", ".join(tools) or "none", *cells]
+        print("| " + " | ".join(cols) + " |")
 
     print("\nSummary metrics")
     for summary in result.summary_metrics:
