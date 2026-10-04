@@ -43,6 +43,17 @@ def right_tool(instance: dict) -> dict:
     }
 
 
+EXPERIMENT = "devfest-travel-assistant"
+
+
+def get_or_create_experiment(client) -> str:
+    """One evaluation experiment in the console that groups every run of this demo."""
+    for experiment in client.evals.list_evaluation_experiments().evaluation_experiments or []:
+        if experiment.display_name == EXPERIMENT:
+            return experiment.name
+    return client.evals.create_evaluation_experiment(display_name=EXPERIMENT).name
+
+
 # Our own LLM judge, with the same guideline as Part 1's MLflow Guidelines scorer.
 # The eval service fills in {prompt} and {response} and expects the judge to reply
 # in JSON ({{ and }} are literal braces). MetricPromptBuilder does not ask for JSON,
@@ -121,6 +132,7 @@ if __name__ == "__main__":
         dataset=types.EvaluationDataset(eval_dataset_df=answered),
         dest=f"gs://{settings.bucket}/eval-runs",
         display_name="devfest-travel-assistant-eval",
+        evaluation_experiment=get_or_create_experiment(client),
         metrics=[
             types.RubricMetric.FINAL_RESPONSE_QUALITY,
             types.RubricMetric.TOOL_USE_QUALITY,
@@ -131,4 +143,4 @@ if __name__ == "__main__":
         time.sleep(10)
         run = client.evals.get_evaluation_run(name=run.name)
     print(f"  {run.state.name}: {run.name}")
-    print(f"  Console: Agent Platform > Evaluation, region {settings.region}, run '{run.display_name}'")
+    print(f"  Console: Agent Platform > Evaluation > Experiments > '{EXPERIMENT}' ({settings.region})")
