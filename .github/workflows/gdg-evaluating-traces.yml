@@ -2,6 +2,7 @@ name: GDG evaluating traces demo
 
 on:
   push:
+    branches: [main] # PR branches are covered by pull_request, so they run once
     paths:
       - "google-developer-group-tutorials/evaluating-traces-with-gemini-enterprise-agent-platform-and-mlflow/**"
       - ".github/workflows/gdg-evaluating-traces.yml"

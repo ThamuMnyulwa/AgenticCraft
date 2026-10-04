@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches: [main] # PR branches are covered by pull_request, so they run once
   pull_request:
 
 permissions:
