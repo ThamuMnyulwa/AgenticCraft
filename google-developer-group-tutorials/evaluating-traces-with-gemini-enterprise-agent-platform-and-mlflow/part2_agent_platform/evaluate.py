@@ -67,7 +67,14 @@ if __name__ == "__main__":
     )
 
     print("Step 1: running the five questions through the deployed agent")
-    answered = client.evals.run_inference(agent=load_agent_resource(), src=dataset)
+    answered = client.evals.run_inference(agent=load_agent_resource(), src=dataset).eval_dataset_df
+
+    # run_inference records the conversation but not the agent's tool definitions,
+    # and evaluate() ignores agent_info when a row already has agent_data. Without
+    # this, the tool-use judge thinks the agent has no tools and under-scores it.
+    agent_info = types.evals.AgentInfo.load_from_agent(root_agent)
+    agents = {name: cfg.model_dump(mode="json", exclude_none=True) for name, cfg in agent_info.agents.items()}
+    answered["agent_data"] = [{**row, "agents": agents} for row in answered["agent_data"]]
 
     print("Step 2: scoring the answers and tool calls")
     result = client.evals.evaluate(
@@ -80,9 +87,18 @@ if __name__ == "__main__":
             travel_guidelines,  # our own judge
             types.Metric(name="right_tool", custom_function=right_tool),
         ],
-        agent_info=types.evals.AgentInfo.load_from_agent(root_agent),
         config={"dest": results_uri},
     )
+
+    print("\nPer-row results")
+    names = ["final_response_quality_v1", "tool_use_quality_v1", "travel_guidelines", "right_tool"]
+    for question, case in zip(questions, result.eval_case_results, strict=True):
+        scores = case.response_candidate_results[0].metric_results
+        cells = [
+            f"{name.removesuffix('_v1')}={scores[name].score if scores[name].score is not None else 'n/a'}"
+            for name in names
+        ]
+        print(f"  {'  '.join(cells)}  {question}")
 
     print("\nSummary metrics")
     for summary in result.summary_metrics:
