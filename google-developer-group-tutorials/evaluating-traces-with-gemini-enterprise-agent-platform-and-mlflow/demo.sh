@@ -25,13 +25,14 @@ Part 1 (local; the Gemini key comes from Secret Manager, or GEMINI_API_KEY in .e
   lint         ruff check --fix, ruff format and terraform fmt (same as pre-commit)
 
 Part 2 (Google Cloud, needs GOOGLE_CLOUD_PROJECT and gcloud auth)
+  tf-bootstrap create the GCS bucket for Terraform state (once per project)
   infra-up     terraform init + apply in terraform/agent_platform/
   deploy       deploy the ADK agent to Agent Runtime
   traces       send queries to the deployed agent
   part2        run the Agent Platform evaluation
   infra-down   delete the deployed agent, then terraform destroy both stacks
 
-  all          setup, api-key, part1, infra-up, deploy, traces, part2
+  all          setup, tf-bootstrap, api-key, part1, infra-up, deploy, traces, part2
 EOF
 }
 
@@ -137,10 +138,16 @@ tf_vars() {
   echo -var "project_id=${GOOGLE_CLOUD_PROJECT}" -var "region=${GOOGLE_CLOUD_LOCATION}"
 }
 
+cmd_tf_bootstrap() {
+  step "Terraform state bucket"
+  require_cmd gcloud "See https://cloud.google.com/sdk/docs/install"
+  ./scripts/bootstrap-terraform-state.sh
+}
+
 cmd_infra_up() {
   preflight cloud
   step "Terraform: creating APIs, bucket and service account"
-  tf agent_platform init -input=false
+  ./scripts/terraform-init.sh agent_platform
   # shellcheck disable=SC2046
   tf agent_platform apply $(tf_vars)
 }
@@ -167,6 +174,8 @@ cmd_infra_down() {
   preflight cloud
   step "Deleting the deployed agent"
   uv run python -m part2_agent_platform.teardown
+  ./scripts/terraform-init.sh agent_platform
+  ./scripts/terraform-init.sh gemini_api_key
   step "Terraform: destroying the Agent Platform stack"
   # shellcheck disable=SC2046
   tf agent_platform destroy $(tf_vars)
@@ -177,6 +186,7 @@ cmd_infra_down() {
 
 cmd_all() {
   cmd_setup
+  cmd_tf_bootstrap
   cmd_api_key
   cmd_part1
   cmd_infra_up
@@ -192,6 +202,7 @@ case "${1:-}" in
   part1)      cmd_part1 ;;
   test)       cmd_test ;;
   lint)       cmd_lint ;;
+  tf-bootstrap) cmd_tf_bootstrap ;;
   infra-up)   cmd_infra_up ;;
   deploy)     cmd_deploy ;;
   traces)     cmd_traces ;;

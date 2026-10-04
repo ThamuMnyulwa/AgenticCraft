@@ -1,5 +1,8 @@
 terraform {
   required_version = ">= 1.16"
+
+  # State lives in GCS. bucket and prefix are passed at init time, see demo.sh tf_init.
+  backend "gcs" {}
   required_providers {
     google = {
       source  = "hashicorp/google"

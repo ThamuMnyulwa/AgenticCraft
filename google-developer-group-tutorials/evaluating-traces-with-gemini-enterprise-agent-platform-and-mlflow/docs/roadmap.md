@@ -12,11 +12,15 @@ These are checked against SDK source and docs, but not against a live project.
 6. **Billing on `oceanhub-dev`.** It was off at the last check, which blocks Secret Manager and Part 2.
 7. **Whether a `gemini-api-key` secret already exists** in `oceanhub-dev`. It could not be listed without billing. `./demo.sh api-key` handles both cases.
 
+## Done since the first plan
+
+- Remote Terraform state in `gs://oceanhub-dev-tfstate` (versioned, private), one prefix per stack.
+- Gemini API key in Secret Manager, reused if it exists, else created.
+
 ## Phase 2: after the talk
 
 | Item | Why | Notes |
 |---|---|---|
-| Remote Terraform state in GCS | CI/CD cannot use laptop-local state, and state holds the API key | A `backend "gcs"` block per stack, with a bucket created once by hand or a bootstrap stack |
 | Workload Identity Federation for GitHub | Deploy from CI without JSON keys | Terraform manages the pool, the provider and a deployer service account with `iam.serviceAccountUser` on the agent SA |
 | Dev and prod environments | Promote a tested agent | A tfvars file per environment, or one project each. CI deploys dev on merge and prod on a tagged release after the eval gate passes. |
 | Per-agent identity | Recommended by the Agent Runtime setup docs | `identity_type: AGENT_IDENTITY` in the deploy config instead of a shared service account |

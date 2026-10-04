@@ -21,7 +21,7 @@ set +a
   || { echo "Set GOOGLE_CLOUD_PROJECT in .env first." >&2; exit 1; }
 SECRET_ID="${GEMINI_SECRET_ID:-gemini-api-key}"
 
-terraform -chdir="$STACK" init -input=false
+./scripts/terraform-init.sh gemini_api_key
 
 if terraform -chdir="$STACK" state list 2>/dev/null | grep -q '^google_secret_manager_secret\.gemini_api_key'; then
   create_secret=true

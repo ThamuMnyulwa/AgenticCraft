@@ -34,7 +34,9 @@ More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture
 │   ├── gemini_api_key/       # Gemini API key in Secret Manager: reuse or create
 │   └── agent_platform/       # APIs, bucket, service account for Part 2
 ├── scripts/
-│   └── setup-gemini-secret.sh    # picks reuse or create, then applies gemini_api_key
+│   ├── bootstrap-terraform-state.sh  # creates the GCS state bucket, once per project
+│   ├── terraform-init.sh             # terraform init for one stack against that bucket
+│   └── setup-gemini-secret.sh        # picks reuse or create, then applies gemini_api_key
 └── tests/                    # offline unit tests (./demo.sh test)
 ```
 
@@ -47,7 +49,7 @@ More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture
 
 ## Quick start
 
-1. `./demo.sh setup` installs dependencies and creates `.env`. Set `GOOGLE_CLOUD_PROJECT` in it.
+1. `./demo.sh setup` installs dependencies and creates `.env`. Set `GOOGLE_CLOUD_PROJECT` in it, then run `./demo.sh tf-bootstrap` once per project to create the Terraform state bucket.
 2. `./demo.sh api-key` makes sure the Gemini API key is in Secret Manager (`gemini-api-key`). If the secret exists it is reused; if not, Terraform creates a key restricted to the Gemini API and stores it. The key is then copied into your local `.env` (mode 600, gitignored), so runs do not call Secret Manager. Secret Manager stays the source of truth: re-run `api-key` after rotating the key.
 3. `./demo.sh mlflow-ui` in a second terminal, then open http://localhost:5000
 4. `./demo.sh part1` creates traces and runs the evaluation.
@@ -92,7 +94,7 @@ Run `./demo.sh` with no arguments to list every command.
 
 - Change the model in one place: `shared/config.py`.
 - The MLflow store is `mlflow.db` (SQLite) in this folder. `./demo.sh mlflow-ui` serves it with the same MLflow version that wrote it.
-- `.env`, `mlflow.db`, Terraform state and `.agent_resource` are gitignored. The secret version is written with a write-only attribute, so it is not in Terraform state, but the API key resource still records the key string there. State is local and never leaves the laptop. Move it to a GCS backend before running Terraform from CI.
+- `.env`, `mlflow.db`, Terraform state and `.agent_resource` are gitignored. The secret version is written with a write-only attribute, so it is not in Terraform state, but the API key resource still records the key string there. Terraform state lives in `gs://<project>-tfstate` (versioned, private, one prefix per stack), so treat read access to that bucket like access to the key.
 
 ## CI/CD
 

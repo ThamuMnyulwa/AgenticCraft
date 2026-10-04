@@ -73,7 +73,7 @@ flowchart LR
 
 ## Infrastructure (`terraform/`)
 
-Two independent stacks with local state:
+Two independent stacks. State is in GCS (`gs://<project>-tfstate`, versioned), one prefix per stack:
 
 | Stack | Resources | Billing |
 |---|---|---|
