@@ -1,13 +1,20 @@
-"""Two scorers: an LLM judge (Gemini) and a code check on the trace."""
+"""Three scorers: a built-in LLM judge, our own LLM judge, and a code check on the trace."""
 
 from mlflow.entities import Feedback, SpanType
-from mlflow.genai.scorers import RelevanceToQuery, scorer
+from mlflow.genai.scorers import Guidelines, RelevanceToQuery, scorer
 
-from shared.config import MODEL
+from shared.config import JUDGE_GUIDELINE, MODEL
 
 # Built-in LLM judge. "vertex_ai:/<model>" makes Gemini on the Agent Platform the judge
 # (Application Default Credentials, project and location set in agent.setup()).
 relevance = RelevanceToQuery(model=f"vertex_ai:/{MODEL}")
+
+# Our own judge: same Gemini, but criteria we wrote (shared with Part 2).
+travel_guidelines = Guidelines(
+    name="travel_guidelines",
+    guidelines=[JUDGE_GUIDELINE],
+    model=f"vertex_ai:/{MODEL}",
+)
 
 
 @scorer
@@ -21,4 +28,4 @@ def right_tool(trace, expectations) -> Feedback:
     )
 
 
-SCORERS = [relevance, right_tool]
+SCORERS = [relevance, travel_guidelines, right_tool]

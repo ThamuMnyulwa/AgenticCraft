@@ -1,7 +1,7 @@
 """Evaluate the deployed agent with the Agent Platform eval service.
 
-Same five questions as Part 1. Two managed rubric metrics, plus the same
-right_tool check from Part 1 written as a custom metric.
+Same five questions as Part 1. Two managed rubric judges, our own LLM judge
+(same guideline as Part 1), and the same right_tool code check as Part 1.
 """
 
 import agentplatform
@@ -10,6 +10,7 @@ from agentplatform import types
 
 from part2_agent_platform.agent.agent import root_agent
 from part2_agent_platform.settings import load_agent_resource, load_settings
+from shared.config import JUDGE_GUIDELINE
 from shared.eval_data import EVAL_DATA
 
 EXPECTED_TOOL = {row["inputs"]["question"]: row["expectations"]["expected_tool"] for row in EVAL_DATA}
@@ -36,6 +37,22 @@ def right_tool(instance: dict) -> dict:
     }
 
 
+# Our own LLM judge, with the same guideline as Part 1's MLflow Guidelines scorer.
+# The eval service fills in {prompt} and {response} and expects the judge to reply
+# in JSON ({{ and }} are literal braces). MetricPromptBuilder does not ask for JSON,
+# so the service could not parse its replies; this explicit prompt fixes that.
+JUDGE_PROMPT = (
+    "You are judging the answer of a travel assistant.\n\n"
+    f"Guideline: {JUDGE_GUIDELINE}\n\n"
+    "User question:\n{prompt}\n\n"
+    "Assistant answer:\n{response}\n\n"
+    "Reply with JSON only, no other text, in exactly this form:\n"
+    '{{"score": 1, "explanation": "one sentence"}}\n'
+    "Use score 1 if the answer meets the guideline and 0 if it does not."
+)
+travel_guidelines = types.LLMMetric(name="travel_guidelines", prompt_template=JUDGE_PROMPT)
+
+
 if __name__ == "__main__":
     settings = load_settings()
     client = agentplatform.Client(project=settings.project, location=settings.region)
@@ -57,7 +74,10 @@ if __name__ == "__main__":
         dataset=answered,
         metrics=[
             types.RubricMetric.FINAL_RESPONSE_QUALITY,  # did it complete the task well?
-            types.RubricMetric.TOOL_USE_QUALITY,  # did it use its tools sensibly?
+            # Did it use its tools sensibly? The service refuses to score a row with
+            # no tool calls at all, so the bicycle row logs an error and is left out.
+            types.RubricMetric.TOOL_USE_QUALITY,
+            travel_guidelines,  # our own judge
             types.Metric(name="right_tool", custom_function=right_tool),
         ],
         agent_info=types.evals.AgentInfo.load_from_agent(root_agent),

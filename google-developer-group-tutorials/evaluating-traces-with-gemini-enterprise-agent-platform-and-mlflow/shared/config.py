@@ -17,3 +17,8 @@ SYSTEM_INSTRUCTION = (
     "Use the calculator tool for complex arithmetic. "
     "Answer in one or two short sentences."
 )
+
+# Our own LLM judge, used in both parts: MLflow Guidelines in Part 1 and a custom
+# LLMMetric in Part 2. The judge only sees the question and the answer (not the
+# tool results), so the guideline must be checkable from those two alone.
+JUDGE_GUIDELINE = "The answer is friendly and directly answers the user's question in plain language."

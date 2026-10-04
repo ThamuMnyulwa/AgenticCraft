@@ -31,6 +31,7 @@ if __name__ == "__main__":
         print(
             f"  right_tool={str(row['right_tool/value']):5}  "
             f"relevance={str(row['relevance_to_query/value']):4}  "
+            f"guidelines={str(row['travel_guidelines/value']):4}  "
             f"{row['request']['question']}"
         )
 

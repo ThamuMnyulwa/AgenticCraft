@@ -21,7 +21,7 @@ More detail lives in [`docs/`](docs/README.md): [architecture](docs/architecture
 ├── part1_mlflow/
 │   ├── agent.py              # google-genai agent, traced with MLflow
 │   ├── run_agent.py          # 3 questions to create traces
-│   ├── scorers.py            # RelevanceToQuery (Gemini judge on Agent Platform) + right_tool
+│   ├── scorers.py            # RelevanceToQuery + travel_guidelines (Gemini judges) + right_tool
 │   └── evaluate.py           # mlflow.genai.evaluate
 ├── part2_agent_platform/
 │   ├── agent/agent.py        # the same agent in ADK
@@ -64,9 +64,9 @@ Run `./demo.sh` with no arguments to list every command.
 | 0:00 | Show `shared/tools.py` and `part1_mlflow/agent.py` | Two fake tools, one Gemini agent. `mlflow.gemini.autolog()` plus `@mlflow.trace` is all the instrumentation. |
 | 2:00 | `./demo.sh part1` | Three questions first, then the five-row evaluation. |
 | 3:00 | MLflow UI: **Experiments**, then **devfest-evals**, then the **Traces** tab. Click the Cape Town trace. | One request is one trace: AGENT span, LLM span, TOOL span `get_weather`, LLM span. Show inputs and outputs on each span. |
-| 5:00 | Show `part1_mlflow/scorers.py` | One LLM judge (Gemini judging Gemini) and one plain Python check that reads the trace. |
-| 6:00 | MLflow UI: the **Evaluations** (evaluation runs) tab, open the newest run | Five rows, two scorers. Relevance passes everywhere. |
-| 7:00 | Find the row "How many wheels do 2 bicycles have?" with `right_tool` = No. Open its trace. | The answer is correct (4) but there is no TOOL span. The judge says relevant, the trace says the agent skipped the calculator. The cause is one word in the system prompt: "complex arithmetic". A correct answer can hide the wrong behaviour, and only trace-level evaluation catches it. |
+| 5:00 | Show `part1_mlflow/scorers.py` | A built-in judge (relevance), our own judge written in plain English (`travel_guidelines`), and one plain Python check that reads the trace. |
+| 6:00 | MLflow UI: the **Evaluations** (evaluation runs) tab, open the newest run | Five rows, three scorers. Both judges pass every row. |
+| 7:00 | Find the row "How many wheels do 2 bicycles have?" with `right_tool` = No. Open its trace. | The answer is correct (4) but there is no TOOL span. Both judges are happy, the trace says the agent skipped the calculator. The cause is one word in the system prompt: "complex arithmetic". A correct answer can hide the wrong behaviour, and only trace-level evaluation catches it. |
 | 9:00 | Hand over to Part 2 slides | Same agent, same questions, now in the cloud. |
 
 ## Pre-talk checklist
