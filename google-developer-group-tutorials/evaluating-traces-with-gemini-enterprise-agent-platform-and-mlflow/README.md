@@ -65,7 +65,8 @@ Run `./demo.sh` with no arguments to list every command.
 | 2:00 | `./demo.sh part1` | Three questions first, then the five-row evaluation. |
 | 3:00 | MLflow UI: **Experiments**, then **devfest-evals**, then the **Traces** tab. Click the Cape Town trace. | One request is one trace: AGENT span, LLM span, TOOL span `get_weather`, LLM span. Show inputs and outputs on each span. |
 | 5:00 | Show `part1_mlflow/scorers.py` | A built-in judge (relevance), our own judge written in plain English (`travel_guidelines`), and one plain Python check that reads the trace. |
-| 6:00 | MLflow UI: the **Evaluations** (evaluation runs) tab, open the newest run | Five rows, three scorers. Both judges pass every row. |
+| 5:30 | MLflow UI: **Judges** | The two LLM judges are registered in the experiment. The code check (`right_tool`) is not listed: MLflow only registers `@scorer` code on Databricks, but it runs in every evaluation. |
+| 6:00 | MLflow UI: **Evaluation runs**, open the newest run | Five rows, three scorers. Both judges pass every row. |
 | 7:00 | Find the row "How many wheels do 2 bicycles have?" with `right_tool` = No. Open its trace. | The answer is correct (4) but there is no TOOL span. Both judges are happy, the trace says the agent skipped the calculator. The cause is one word in the system prompt: "complex arithmetic". A correct answer can hide the wrong behaviour, and only trace-level evaluation catches it. |
 | 9:00 | Hand over to Part 2 slides | Same agent, same questions, now in the cloud. |
 

@@ -29,3 +29,14 @@ def right_tool(trace, expectations) -> Feedback:
 
 
 SCORERS = [relevance, travel_guidelines, right_tool]
+
+# The LLM judges, saved to the experiment so they show on the MLflow "Judges" page.
+# right_tool is left out: MLflow only allows registering @scorer code on Databricks.
+# It still runs in every evaluation; its scores are under "Evaluation runs".
+REGISTERED_JUDGES = [relevance, travel_guidelines]
+
+
+def register_judges() -> None:
+    """Save the LLM judges to the active experiment. Safe to call on every run."""
+    for judge in REGISTERED_JUDGES:
+        judge.register()
