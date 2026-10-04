@@ -15,11 +15,13 @@ from pathlib import Path
 import agentplatform
 import pandas as pd
 from agentplatform import types
+from agentplatform._genai import _evals_visualization  # no public renderer yet
 
 from part2_agent_platform.agent.agent import root_agent
 from part2_agent_platform.settings import load_agent_resource, load_settings
 from shared.eval_data import EVAL_DATA
 
+REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
 EXPECTED_TOOL = {row["inputs"]["question"]: row["expectations"]["expected_tool"] for row in EVAL_DATA}
 
 
@@ -117,7 +119,14 @@ if __name__ == "__main__":
     for summary in result.summary_metrics:
         print(f"  {summary.metric_name}: {summary.mean_score}")
 
-    print(f"\nResults written to {results_uri}")
+    # The same interactive report result.show() renders in a notebook, saved as HTML.
+    # (Pattern from Google's agent-platform-eval-flywheel skill.)
+    report = REPORTS_DIR / f"part2_{time.strftime('%Y%m%d_%H%M%S')}.html"
+    REPORTS_DIR.mkdir(exist_ok=True)
+    report.write_text(str(_evals_visualization.get_evaluation_html(result.model_dump_json(fallback=str))))
+    print(f"\nHTML report: {report}")
+
+    print(f"Results written to {results_uri}")
     print(
         f"Browse them: https://console.cloud.google.com/storage/browser/{settings.bucket}/evals?project={settings.project}"
     )

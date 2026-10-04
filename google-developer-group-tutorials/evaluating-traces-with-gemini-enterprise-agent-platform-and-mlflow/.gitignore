@@ -8,3 +8,6 @@ mlartifacts/
 
 # Part 2: resource name of the deployed agent, written by deploy.py
 .agent_resource
+
+# HTML evaluation reports written by part2_agent_platform/evaluate.py
+reports/
