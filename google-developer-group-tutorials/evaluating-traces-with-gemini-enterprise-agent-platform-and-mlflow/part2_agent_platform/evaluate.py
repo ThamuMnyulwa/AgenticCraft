@@ -8,6 +8,7 @@ managed evaluation run with the three judges, so the results also show in the
 Agent Platform console. right_tool is Python, so it cannot run in the service.
 """
 
+import json
 import time
 
 import agentplatform
@@ -84,14 +85,17 @@ if __name__ == "__main__":
     )
 
     print("Step 1: running the five questions through the deployed agent")
-    answered = client.evals.run_inference(agent=load_agent_resource(), src=dataset).eval_dataset_df
+    agent = load_agent_resource()
+    inferred = client.evals.run_inference(agent=agent, src=dataset)
+    answered = inferred.eval_dataset_df
 
     # run_inference records the conversation but not the agent's tool definitions,
     # and evaluate() ignores agent_info when a row already has agent_data. Without
     # this, the tool-use judge thinks the agent has no tools and under-scores it.
     agent_info = types.evals.AgentInfo.load_from_agent(root_agent)
     agents = {name: cfg.model_dump(mode="json", exclude_none=True) for name, cfg in agent_info.agents.items()}
-    answered["agent_data"] = [{**row, "agents": agents} for row in answered["agent_data"]]
+    rows = [json.loads(row) if isinstance(row, str) else row for row in answered["agent_data"]]
+    answered["agent_data"] = [{**row, "agents": agents} for row in rows]
 
     print("Step 2: scoring the answers and tool calls")
     result = client.evals.evaluate(
@@ -127,9 +131,12 @@ if __name__ == "__main__":
     )
 
     print("\nStep 3: managed evaluation run, so the judges show in the console")
-    # No agent argument: the rows are already answered, so the service only scores them.
+    # agent= links the run to the deployed agent (it gets labelled with the agent's ID).
+    # The rows keep run_inference's candidate name, so the service sees they are already
+    # answered and only scores them instead of running the agent again.
     run = client.evals.create_evaluation_run(
-        dataset=types.EvaluationDataset(eval_dataset_df=answered),
+        dataset=types.EvaluationDataset(eval_dataset_df=answered, candidate_name=inferred.candidate_name),
+        agent=agent,
         dest=f"gs://{settings.bucket}/eval-runs",
         display_name="devfest-travel-assistant-eval",
         evaluation_experiment=get_or_create_experiment(client),
