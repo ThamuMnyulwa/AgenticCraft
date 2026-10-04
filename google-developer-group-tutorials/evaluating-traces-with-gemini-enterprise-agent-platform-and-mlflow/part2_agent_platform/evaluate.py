@@ -2,7 +2,13 @@
 
 Same five questions as Part 1. Two managed rubric judges, our own LLM judge
 (same guideline as Part 1), and the same right_tool code check as Part 1.
+
+Step 2 scores locally (all four metrics, results to GCS). Step 3 creates a
+managed evaluation run with the three judges, so the results also show in the
+Agent Platform console. right_tool is Python, so it cannot run in the service.
 """
+
+import time
 
 import agentplatform
 import pandas as pd
@@ -108,3 +114,21 @@ if __name__ == "__main__":
     print(
         f"Browse them: https://console.cloud.google.com/storage/browser/{settings.bucket}/evals?project={settings.project}"
     )
+
+    print("\nStep 3: managed evaluation run, so the judges show in the console")
+    # No agent argument: the rows are already answered, so the service only scores them.
+    run = client.evals.create_evaluation_run(
+        dataset=types.EvaluationDataset(eval_dataset_df=answered),
+        dest=f"gs://{settings.bucket}/eval-runs",
+        display_name="devfest-travel-assistant-eval",
+        metrics=[
+            types.RubricMetric.FINAL_RESPONSE_QUALITY,
+            types.RubricMetric.TOOL_USE_QUALITY,
+            travel_guidelines,
+        ],
+    )
+    while run.state.name not in ("SUCCEEDED", "FAILED", "CANCELLED"):
+        time.sleep(10)
+        run = client.evals.get_evaluation_run(name=run.name)
+    print(f"  {run.state.name}: {run.name}")
+    print(f"  Console: Agent Platform > Evaluation, region {settings.region}, run '{run.display_name}'")

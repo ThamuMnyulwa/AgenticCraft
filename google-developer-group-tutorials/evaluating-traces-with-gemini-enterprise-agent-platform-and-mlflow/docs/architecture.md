@@ -74,6 +74,7 @@ flowchart LR
 - **Evaluation** (`evaluate.py`):
   - `client.evals.run_inference(agent=..., src=dataframe)` runs the questions through the deployed agent.
   - `client.evals.evaluate(...)` then scores the answers with the managed judges `FINAL_RESPONSE_QUALITY` and `TOOL_USE_QUALITY`, our own `travel_guidelines` judge (an `LLMMetric` with the same guideline as Part 1), and a custom `right_tool` code metric that mirrors Part 1.
+  - Step 3 creates a managed evaluation run (`client.evals.create_evaluation_run`, no `agent` argument, so the service only scores the already answered rows) with the three judges. It shows in the console under Agent Platform > Evaluation as `devfest-travel-assistant-eval`, with results in `gs://<bucket>/eval-runs`. `right_tool` is Python and cannot run in the service.
   - `TOOL_USE_QUALITY` refuses to score a row with no tool calls (400 for the bicycle row). The SDK logs it and leaves the row out of that metric.
   - Results are written to `gs://<bucket>/evals`.
 - **Settings** (`settings.py`): every script reads project, region, bucket and service account from `terraform output`, so Python and Terraform cannot drift apart.

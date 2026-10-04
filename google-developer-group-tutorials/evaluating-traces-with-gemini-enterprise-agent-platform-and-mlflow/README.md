@@ -80,7 +80,7 @@ Run `./demo.sh` with no arguments to list every command.
 - [ ] `./demo.sh test` passes.
 - [ ] `./demo.sh part1` run at least once today, so the MLflow UI already has data if the network fails.
 - [ ] Part 2 run ahead of time: `infra-up`, `deploy`, `traces`, `part2`. Deploys take several minutes, so never do them live.
-- [ ] Screenshots: the Agent Platform evaluation results (from the `part2` output and the GCS results), the Cloud Trace list, and one trace drill-down showing the tool span.
+- [ ] Screenshots: the managed evaluation run `devfest-travel-assistant-eval` (Agent Platform > Evaluation), the `part2` per-row table, the agent's Traces tab, and one trace drill-down showing the tool span.
 - [ ] Backup screen recording of the Part 1 run of show.
 - [ ] Laptop: `.env` filled in, MLflow UI running, font size up, notifications off.
 

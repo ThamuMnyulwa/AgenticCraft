@@ -2,12 +2,13 @@
 
 ## Not verified yet
 
-1. **Traces in Cloud Trace.** The likely cause was found on 2026-10-04: `observability.googleapis.com` was disabled, so Trace Explorer failed with "error fetching project provision state" and spans sent to `telemetry.googleapis.com` (accepted with HTTP 200) never showed up. The API is now in Terraform. Confirm that new agent traces appear in Trace Explorer and on the agent's Traces tab.
-2. **The service account roles** beyond `roles/aiplatform.user`. The extra roles are a least-privilege choice and not listed by the docs.
-3. **The MLflow UI tab names** used in the run-of-show.
+1. **The service account roles** beyond `roles/aiplatform.user`. The extra roles are a least-privilege choice and not listed by the docs.
+2. **The MLflow UI tab names** used in the run-of-show.
 
 ## Done since the first plan
 
+- Traces confirmed in Trace Explorer and on the agent's Traces tab (2026-10-04). Root cause of the earlier gap: `observability.googleapis.com` was disabled; it is now in Terraform.
+- Part 2 judges visible in the console: `./demo.sh part2` creates a managed evaluation run (`devfest-travel-assistant-eval`).
 - Part 1 verified end to end on 2026-10-04: Gemini on the Agent Platform (`global`), MLflow traces, Vertex judge, exactly one failing row (bicycles), quality gate passes.
 - Part 2 verified end to end on 2026-10-04: deployed to Agent Runtime in `europe-west1` with model calls to `global`, 7 queries answered with the right tools, evaluation with final_response_quality 1.0, travel_guidelines 1.0, right_tool 0.8 (bicycles), results in GCS.
 - Remote Terraform state in `gs://oceanhub-dev-tfstate` (versioned, private), one prefix per stack.
